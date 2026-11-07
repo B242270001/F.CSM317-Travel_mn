@@ -1,4 +1,7 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../data/places.dart';
 import '../models/place.dart';
@@ -87,83 +90,122 @@ class _HomeScreenState extends State<HomeScreen> {
     final descriptionController = TextEditingController();
     final distanceController = TextEditingController();
 
+    String? localImagePath;
+    final ImagePicker imagePicker = ImagePicker();
+
     final newPlace = await showDialog<Place>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Шинэ газар нэмэх'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(labelText: 'Газрын нэр *'),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: regionController,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(labelText: 'Аймаг / бүс *'),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: descriptionController,
-                maxLines: 3,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(labelText: 'Товч тайлбар *'),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: distanceController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'УБ-аас ойролцоо зай (км)',
-                  hintText: 'Мэдэхгүй бол хоосон үлдээнэ',
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Шинэ газар нэмэх'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GestureDetector(
+                  onTap: () async {
+                    final XFile? pickedFile = await imagePicker.pickImage(
+                      source: ImageSource.gallery,
+                    );
+                    if (pickedFile != null) {
+                      setDialogState(() {
+                        localImagePath = pickedFile.path;
+                      });
+                    }
+                  },
+                  child: Container(
+                    height: 120,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Theme.of(context).colorScheme.outline.withOpacity(0.5)),
+                    ),
+                    child: localImagePath != null
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: kIsWeb
+                                ? Image.network(localImagePath!, fit: BoxFit.cover)
+                                : Image.file(File(localImagePath!), fit: BoxFit.cover),
+                          )
+                        : Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Icon(Icons.add_a_photo_outlined, size: 30),
+                              SizedBox(height: 4),
+                              Text('Галерейгаас зураг сонгох'),
+                            ],
+                          ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Шинэ газар одоогоор жишээ зураг ашиглана.',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
+                const SizedBox(height: 12),
+                TextField(
+                  controller: nameController,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: const InputDecoration(labelText: 'Газрын нэр *'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: regionController,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: const InputDecoration(labelText: 'Аймаг / бүс *'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: descriptionController,
+                  maxLines: 3,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: const InputDecoration(labelText: 'Товч тайлбар *'),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: distanceController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'УБ-аас ойролцоо зай (км)',
+                    hintText: 'Мэдэхгүй бол хоосон үлдээнэ',
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Болих'),
-          ),
-          FilledButton(
-            onPressed: () {
-              final name = nameController.text.trim();
-              final region = regionController.text.trim();
-              final description = descriptionController.text.trim();
-              final distance = int.tryParse(distanceController.text.trim()) ?? 0;
-              if (name.isEmpty || region.isEmpty || description.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Одтой талбаруудыг бөглөнө үү.')),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Болих'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final name = nameController.text.trim();
+                final region = regionController.text.trim();
+                final description = descriptionController.text.trim();
+                final distance = int.tryParse(distanceController.text.trim()) ?? 0;
+                if (name.isEmpty || region.isEmpty || description.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Одтой талбаруудыг бөглөнө үү.')),
+                  );
+                  return;
+                }
+                final id = 'custom-${DateTime.now().microsecondsSinceEpoch}';
+                final finalImage = localImagePath ?? 'assets/images/terelj.png';
+
+                Navigator.of(dialogContext).pop(
+                  Place(
+                    id: id,
+                    name: name,
+                    region: region,
+                    image: finalImage,
+                    description: description,
+                    rating: 4.0,
+                    distanceKm: distance < 0 ? 0 : distance,
+                    bestSeason: 'Зун, намар',
+                  ),
                 );
-                return;
-              }
-              final id = 'custom-${DateTime.now().microsecondsSinceEpoch}';
-              Navigator.of(dialogContext).pop(
-                Place(
-                  id: id,
-                  name: name,
-                  region: region,
-                  image: 'assets/images/terelj.png',
-                  description: description,
-                  rating: 4.0,
-                  distanceKm: distance < 0 ? 0 : distance,
-                  bestSeason: 'Зун, намар',
-                ),
-              );
-            },
-            child: const Text('Нэмэх'),
-          ),
-        ],
+              },
+              child: const Text('Нэмэх'),
+            ),
+          ],
+        ),
       ),
     );
 
@@ -183,6 +225,16 @@ class _HomeScreenState extends State<HomeScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('“${newPlace.name}” жагсаалтад нэмэгдлээ.')),
     );
+  }
+
+  ImageProvider _getImageProvider(String imagePath) {
+    if (imagePath.startsWith('assets/')) {
+      return AssetImage(imagePath);
+    } else if (kIsWeb) {
+      return NetworkImage(imagePath);
+    } else {
+      return FileImage(File(imagePath));
+    }
   }
 
   void _selectAllPlaces() {
@@ -392,7 +444,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 selected: isSelected,
                 selectedTileColor: Theme.of(context).colorScheme.secondaryContainer,
                 leading: CircleAvatar(
-                  backgroundImage: AssetImage(place.image),
+                  backgroundImage: _getImageProvider(place.image),
                   onBackgroundImageError: (exception, stackTrace) {},
                   child: null,
                 ),

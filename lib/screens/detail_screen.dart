@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../models/place.dart';
@@ -63,6 +65,46 @@ class PlaceDetailView extends StatelessWidget {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
 
+    Widget buildHeaderImage() {
+      if (place.image.startsWith('assets/')) {
+        return Image.asset(
+          place.image,
+          height: 285,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => Container(
+            height: 285,
+            color: colors.surfaceContainerHighest,
+            child: Icon(Icons.landscape_outlined, size: 72, color: colors.onSurfaceVariant),
+          ),
+        );
+      } else if (kIsWeb) {
+        return Image.network(
+          place.image,
+          height: 285,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => Container(
+            height: 285,
+            color: colors.surfaceContainerHighest,
+            child: Icon(Icons.broken_image, size: 72, color: colors.onSurfaceVariant),
+          ),
+        );
+      } else {
+        return Image.file(
+          File(place.image),
+          height: 285,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => Container(
+            height: 285,
+            color: colors.surfaceContainerHighest,
+            child: Icon(Icons.broken_image, size: 72, color: colors.onSurfaceVariant),
+          ),
+        );
+      }
+    }
+
     return ListView(
       padding: EdgeInsets.zero,
       children: [
@@ -70,17 +112,7 @@ class PlaceDetailView extends StatelessWidget {
           children: [
             Hero(
               tag: 'place-image-${place.id}',
-              child: Image.asset(
-                place.image,
-                height: 285,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  height: 285,
-                  color: colors.surfaceContainerHighest,
-                  child: Icon(Icons.landscape_outlined, size: 72, color: colors.onSurfaceVariant),
-                ),
-              ),
+              child: buildHeaderImage(),
             ),
             Positioned.fill(
               child: DecoratedBox(

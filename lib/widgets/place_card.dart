@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../models/place.dart';
@@ -21,6 +23,49 @@ class PlaceCard extends StatelessWidget {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
 
+    Widget buildImage() {
+      if (place.image.startsWith('assets/')) {
+        return Image.asset(
+          place.image,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => Container(
+            color: colors.surfaceContainerHighest,
+            child: Icon(
+              Icons.landscape_outlined,
+              size: 48,
+              color: colors.onSurfaceVariant,
+            ),
+          ),
+        );
+      } else if (kIsWeb) {
+        return Image.network(
+          place.image,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => Container(
+            color: colors.surfaceContainerHighest,
+            child: Icon(
+              Icons.broken_image,
+              size: 48,
+              color: colors.onSurfaceVariant,
+            ),
+          ),
+        );
+      } else {
+        return Image.file(
+          File(place.image),
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => Container(
+            color: colors.surfaceContainerHighest,
+            child: Icon(
+              Icons.broken_image,
+              size: 48,
+              color: colors.onSurfaceVariant,
+            ),
+          ),
+        );
+      }
+    }
+
     return Card(
       clipBehavior: Clip.antiAlias,
       elevation: 1,
@@ -35,18 +80,7 @@ class PlaceCard extends StatelessWidget {
                 children: [
                   Hero(
                     tag: 'place-image-${place.id}',
-                    child: Image.asset(
-                      place.image,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        color: colors.surfaceContainerHighest,
-                        child: Icon(
-                          Icons.landscape_outlined,
-                          size: 48,
-                          color: colors.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
+                    child: buildImage(),
                   ),
                   Positioned(
                     left: 8,
