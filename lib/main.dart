@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'screens/home_screen.dart';
+import 'router.dart';
 
 void main() => runApp(const TravelApp());
 
@@ -10,12 +10,11 @@ class TravelApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const seed = Colors.teal;
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'TRAVEL APP',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: seed),
+        colorScheme: ColorScheme.fromSeed(seedColor: seed),
         fontFamily: 'RobotoSlab',
       ),
       darkTheme: ThemeData(
@@ -26,7 +25,7 @@ class TravelApp extends StatelessWidget {
         fontFamily: 'RobotoSlab',
       ),
       themeMode: ThemeMode.system, // утасны тохиргоог дагана
-      home: const HomeScreen(),
+      routerConfig: router,
     );
   }
 }

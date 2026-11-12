@@ -1,10 +1,11 @@
-import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:go_router/go_router.dart';
 
 import '../data/places.dart';
 import '../models/place.dart';
+import '../state/auth_service.dart';
+import '../state/favorites.dart';
+import '../state/ratings.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/place_card.dart';
 import 'detail_screen.dart';
@@ -19,24 +20,38 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
-  final Set<String> _favoriteIds = <String>{};
-  late final List<Place> _places = List<Place>.of(places);
 
   String _query = '';
   bool _showFavorites = false;
-  Place _selectedPlace = places.first;
+  String? _season; // null = бүх улирал
+  bool _sortByRating = false;
+  String _selectedId = places.first.id; // том дэлгэцэд сонгосон газар
 
-  List<Place> get _visiblePlaces {
+  /// Хайлт, улирал, дуртай шүүлтүүр ба эрэмбийг хэрэглэсэн жагсаалт.
+  List<Place> _visiblePlaces(Set<String> favoriteIds, Map<String, int> ratings) {
     final query = _query.trim().toLowerCase();
-    return _places.where((place) {
-      final favoriteMatches = !_showFavorites || _favoriteIds.contains(place.id);
+    final season = _season?.toLowerCase();
+    final result = places.where((place) {
+      final favoriteMatches = !_showFavorites || favoriteIds.contains(place.id);
+      final seasonMatches =
+          season == null || place.bestSeason.toLowerCase().contains(season);
       final queryMatches = query.isEmpty ||
           place.name.toLowerCase().contains(query) ||
           place.region.toLowerCase().contains(query) ||
           place.description.toLowerCase().contains(query) ||
           place.bestSeason.toLowerCase().contains(query);
-      return favoriteMatches && queryMatches;
+      return favoriteMatches && seasonMatches && queryMatches;
     }).toList();
+    if (_sortByRating) {
+      // Дундаж үнэлгээгээр буурахаар; тэнцвэл үнэлгээний тоогоор
+      result.sort((a, b) {
+        final ra = ratingOf(a, ratings);
+        final rb = ratingOf(b, ratings);
+        final byAverage = rb.average.compareTo(ra.average);
+        return byAverage != 0 ? byAverage : rb.count.compareTo(ra.count);
+      });
+    }
+    return result;
   }
 
   @override
@@ -46,27 +61,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  void _toggleFavorite(Place place) {
-    setState(() {
-      if (_favoriteIds.contains(place.id)) {
-        _favoriteIds.remove(place.id);
-      } else {
-        _favoriteIds.add(place.id);
-      }
-    });
-  }
-
-  void _openDetails(Place place) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => DetailScreen(
-          place: place,
-          initialFavorite: _favoriteIds.contains(place.id),
-          onFavoriteChanged: _toggleFavorite,
-        ),
-      ),
-    );
-  }
+  void _openDetails(Place place) => context.push('/place/${place.id}');
 
   void _showAboutDialog() {
     showAboutDialog(
@@ -77,148 +72,22 @@ class _HomeScreenState extends State<HomeScreen> {
       children: const [
         Text(
           'Монгол Улсын байгалийн үзэсгэлэнт газруудыг танилцуулах сургалтын '
-          'зорилготой Flutter апп. StatelessWidget, Material 3, Row, Column, '
-          'Expanded, Stack, GridView болон LayoutBuilder ашигласан.',
+          'зорилготой Flutter апп. OpenStreetMap газрын зураг, Nominatim '
+          'хаягийн хайлт, image_picker, Form ба ValueNotifier ашигласан.',
         ),
       ],
     );
   }
 
-  Future<void> _showAddPlaceDialog() async {
-    final nameController = TextEditingController();
-    final regionController = TextEditingController();
-    final descriptionController = TextEditingController();
-    final distanceController = TextEditingController();
-
-    String? localImagePath;
-    final ImagePicker imagePicker = ImagePicker();
-
-    final newPlace = await showDialog<Place>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Шинэ газар нэмэх'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                GestureDetector(
-                  onTap: () async {
-                    final XFile? pickedFile = await imagePicker.pickImage(
-                      source: ImageSource.gallery,
-                    );
-                    if (pickedFile != null) {
-                      setDialogState(() {
-                        localImagePath = pickedFile.path;
-                      });
-                    }
-                  },
-                  child: Container(
-                    height: 120,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Theme.of(context).colorScheme.outline.withOpacity(0.5)),
-                    ),
-                    child: localImagePath != null
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: kIsWeb
-                                ? Image.network(localImagePath!, fit: BoxFit.cover)
-                                : Image.file(File(localImagePath!), fit: BoxFit.cover),
-                          )
-                        : Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
-                              Icon(Icons.add_a_photo_outlined, size: 30),
-                              SizedBox(height: 4),
-                              Text('Галерейгаас зураг сонгох'),
-                            ],
-                          ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: nameController,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: const InputDecoration(labelText: 'Газрын нэр *'),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: regionController,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: const InputDecoration(labelText: 'Аймаг / бүс *'),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: descriptionController,
-                  maxLines: 3,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: const InputDecoration(labelText: 'Товч тайлбар *'),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: distanceController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'УБ-аас ойролцоо зай (км)',
-                    hintText: 'Мэдэхгүй бол хоосон үлдээнэ',
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Болих'),
-            ),
-            FilledButton(
-              onPressed: () {
-                final name = nameController.text.trim();
-                final region = regionController.text.trim();
-                final description = descriptionController.text.trim();
-                final distance = int.tryParse(distanceController.text.trim()) ?? 0;
-                if (name.isEmpty || region.isEmpty || description.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Одтой талбаруудыг бөглөнө үү.')),
-                  );
-                  return;
-                }
-                final id = 'custom-${DateTime.now().microsecondsSinceEpoch}';
-                final finalImage = localImagePath ?? 'assets/images/terelj.png';
-
-                Navigator.of(dialogContext).pop(
-                  Place(
-                    id: id,
-                    name: name,
-                    region: region,
-                    image: finalImage,
-                    description: description,
-                    rating: 4.0,
-                    distanceKm: distance < 0 ? 0 : distance,
-                    bestSeason: 'Зун, намар',
-                  ),
-                );
-              },
-              child: const Text('Нэмэх'),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    nameController.dispose();
-    regionController.dispose();
-    descriptionController.dispose();
-    distanceController.dispose();
-
+  /// “Газар нэмэх” формыг нээж, буцаасан газрыг жагсаалтын эхэнд нэмнэ.
+  Future<void> _addPlace() async {
+    final newPlace = await context.push<Place>('/add');
     if (!mounted || newPlace == null) return;
     setState(() {
-      _places.insert(0, newPlace);
-      _selectedPlace = newPlace;
+      places.insert(0, newPlace);
+      _selectedId = newPlace.id;
       _showFavorites = false;
+      _season = null;
       _query = '';
       _searchController.clear();
     });
@@ -227,176 +96,206 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  ImageProvider _getImageProvider(String imagePath) {
-    if (imagePath.startsWith('assets/')) {
-      return AssetImage(imagePath);
-    } else if (kIsWeb) {
-      return NetworkImage(imagePath);
-    } else {
-      return FileImage(File(imagePath));
-    }
-  }
-
-  void _selectAllPlaces() {
+  /// Drawer-ийг хаагаад үйлдлийг гүйцэтгэнэ.
+  void _fromDrawer(VoidCallback action) {
     Navigator.of(context).pop();
-    setState(() => _showFavorites = false);
-  }
-
-  void _selectFavorites() {
-    Navigator.of(context).pop();
-    setState(() => _showFavorites = true);
-  }
-
-  void _selectAbout() {
-    Navigator.of(context).pop();
-    _showAboutDialog();
+    action();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final visiblePlaces = _visiblePlaces;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('TRAVEL MONGOLIA'),
-        actions: [
-          IconButton(
-            tooltip: 'Хайх',
-            onPressed: () => _searchFocusNode.requestFocus(),
-            icon: const Icon(Icons.search),
+    // Дуртай эсвэл үнэлгээ өөрчлөгдөхөд жагсаалт, эрэмбэ шууд шинэчлэгдэнэ
+    return ListenableBuilder(
+      listenable: Listenable.merge([favorites, userRatings]),
+      builder: (context, _) {
+        final visiblePlaces =
+            _visiblePlaces(favorites.value, userRatings.value);
+
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('TRAVEL MONGOLIA'),
+            actions: [
+              IconButton(
+                tooltip: 'Хайх',
+                onPressed: () => _searchFocusNode.requestFocus(),
+                icon: const Icon(Icons.search),
+              ),
+              IconButton(
+                tooltip: 'Газрын зураг',
+                onPressed: () => context.push('/places-map'),
+                icon: const Icon(Icons.map_outlined),
+              ),
+              const SizedBox(width: 4),
+            ],
           ),
-          const SizedBox(width: 4),
-        ],
-      ),
-      drawer: AppDrawer(
-        showingFavorites: _showFavorites,
-        onAllPlaces: _selectAllPlaces,
-        onFavorites: _selectFavorites,
-        onAbout: _selectAbout,
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddPlaceDialog,
-        icon: const Icon(Icons.add_location_alt_outlined),
-        label: const Text('Газар нэмэх'),
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(22),
-                  gradient: LinearGradient(
-                    colors: [colors.primaryContainer, colors.secondaryContainer],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Монгол орныг\nөөр өнцгөөс нээ',
-                            style: theme.textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              color: colors.onPrimaryContainer,
-                              height: 1.25,
-                            ),
-                          ),
-                          const SizedBox(height: 7),
-                          Text(
-                            'Байгаль, уул ус, хээр талын аяллаа төлөвлөөрэй.',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: colors.onPrimaryContainer,
-                            ),
-                          ),
+          drawer: AppDrawer(
+            showingFavorites: _showFavorites,
+            onAllPlaces: () =>
+                _fromDrawer(() => setState(() => _showFavorites = false)),
+            onFavorites: () =>
+                _fromDrawer(() => setState(() => _showFavorites = true)),
+            onMap: () => _fromDrawer(() => context.push('/places-map')),
+            onSettings: () => _fromDrawer(() => context.push('/settings')),
+            onAbout: () => _fromDrawer(_showAboutDialog),
+            onLogout: () => _fromDrawer(auth.logout),
+          ),
+          floatingActionButton: FloatingActionButton.extended(
+            onPressed: _addPlace,
+            icon: const Icon(Icons.add_location_alt_outlined),
+            label: const Text('Газар нэмэх'),
+          ),
+          body: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(22),
+                      gradient: LinearGradient(
+                        colors: [
+                          colors.primaryContainer,
+                          colors.secondaryContainer,
                         ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Icon(Icons.terrain_rounded, size: 64, color: colors.primary),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 28),
-              TextField(
-                controller: _searchController,
-                focusNode: _searchFocusNode,
-                onChanged: (value) {
-                  setState(() {
-                    _query = value;
-                    final matches = _visiblePlaces;
-                    if (matches.isNotEmpty && !matches.any((p) => p.id == _selectedPlace.id)) {
-                      _selectedPlace = matches.first;
-                    }
-                  });
-                },
-                decoration: InputDecoration(
-                  hintText: 'Газар, аймаг эсвэл улирлаар хайх',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: _query.isEmpty
-                      ? null
-                      : IconButton(
-                          tooltip: 'Арилгах',
-                          icon: const Icon(Icons.close),
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() => _query = '');
-                          },
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Монгол орныг\nөөр өнцгөөс нээ',
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  color: colors.onPrimaryContainer,
+                                  height: 1.25,
+                                ),
+                              ),
+                              const SizedBox(height: 7),
+                              Text(
+                                'Байгаль, уул ус, хээр талын аяллаа төлөвлөөрэй.',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: colors.onPrimaryContainer,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                  filled: true,
-                  fillColor: colors.surfaceContainerLow,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
+                        const SizedBox(width: 8),
+                        Icon(Icons.terrain_rounded,
+                            size: 64, color: colors.primary),
+                      ],
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Text(
-                    _showFavorites ? 'Дуртай газрууд' : 'Байгалийн газрууд',
-                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _searchController,
+                    focusNode: _searchFocusNode,
+                    onChanged: (value) => setState(() => _query = value),
+                    decoration: InputDecoration(
+                      hintText: 'Газар, аймаг эсвэл улирлаар хайх',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: _query.isEmpty
+                          ? null
+                          : IconButton(
+                              tooltip: 'Арилгах',
+                              icon: const Icon(Icons.close),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() => _query = '');
+                              },
+                            ),
+                      filled: true,
+                      fillColor: colors.surfaceContainerLow,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
                   ),
-                  const Spacer(),
-                  Text(
-                    '${visiblePlaces.length} газар',
-                    style: theme.textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+                  const SizedBox(height: 8),
+                  // Улирлын шүүлтүүр ба үнэлгээгээр эрэмбэлэх сонголт
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        FilterChip(
+                          avatar: const Icon(Icons.star_rounded, size: 18),
+                          label: const Text('Үнэлгээгээр'),
+                          tooltip: 'Дундаж үнэлгээгээр эрэмбэлэх',
+                          selected: _sortByRating,
+                          showCheckmark: false,
+                          onSelected: (v) => setState(() => _sortByRating = v),
+                        ),
+                        const SizedBox(width: 12),
+                        for (final s in seasons) ...[
+                          ChoiceChip(
+                            label: Text(s),
+                            selected: _season == s,
+                            onSelected: (v) =>
+                                setState(() => _season = v ? s : null),
+                          ),
+                          const SizedBox(width: 6),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Text(
+                        _showFavorites ? 'Дуртай газрууд' : 'Байгалийн газрууд',
+                        style: theme.textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w800),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '${visiblePlaces.length} газар',
+                        style: theme.textTheme.bodySmall
+                            ?.copyWith(color: colors.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        if (visiblePlaces.isEmpty) {
+                          return _EmptyState(
+                            showingFavorites: _showFavorites,
+                            filtered: _query.trim().isNotEmpty ||
+                                _season != null,
+                          );
+                        }
+                        if (constraints.maxWidth >= 840) {
+                          return _buildWideLayout(
+                              context, constraints.maxWidth, visiblePlaces);
+                        }
+                        return _buildGridLayout(
+                            constraints.maxWidth, visiblePlaces);
+                      },
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    if (constraints.maxWidth >= 840) {
-                      return _buildWideLayout(context, constraints.maxWidth, visiblePlaces);
-                    }
-                    return _buildGridLayout(context, constraints.maxWidth, visiblePlaces);
-                  },
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildGridLayout(BuildContext context, double width, List<Place> items) {
-    if (items.isEmpty) {
-      return _EmptyState(showingFavorites: _showFavorites, query: _query);
-    }
+  Widget _buildGridLayout(double width, List<Place> items) {
     final columns = width >= 600 ? 3 : 2;
     return GridView.builder(
       padding: const EdgeInsets.only(bottom: 92, top: 4),
@@ -410,22 +309,19 @@ class _HomeScreenState extends State<HomeScreen> {
       itemBuilder: (context, index) {
         final place = items[index];
         return PlaceCard(
+          key: ValueKey(place.id),
           place: place,
-          isFavorite: _favoriteIds.contains(place.id),
-          onFavoriteToggle: () => _toggleFavorite(place),
           onTap: () => _openDetails(place),
         );
       },
     );
   }
 
-  Widget _buildWideLayout(BuildContext context, double width, List<Place> items) {
-    if (items.isEmpty) {
-      return _EmptyState(showingFavorites: _showFavorites, query: _query);
-    }
-    final selected = items.any((place) => place.id == _selectedPlace.id)
-        ? _selectedPlace
-        : items.first;
+  Widget _buildWideLayout(
+      BuildContext context, double width, List<Place> items) {
+    final colors = Theme.of(context).colorScheme;
+    final selected = items.where((p) => p.id == _selectedId).firstOrNull ??
+        items.first;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -438,22 +334,31 @@ class _HomeScreenState extends State<HomeScreen> {
             separatorBuilder: (context, index) => const SizedBox(height: 4),
             itemBuilder: (context, index) {
               final place = items[index];
-              final isSelected = place.id == selected.id;
+              final summary = ratingOf(place);
               return ListTile(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                selected: isSelected,
-                selectedTileColor: Theme.of(context).colorScheme.secondaryContainer,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
+                selected: place.id == selected.id,
+                selectedTileColor: colors.secondaryContainer,
                 leading: CircleAvatar(
-                  backgroundImage: _getImageProvider(place.image),
-                  onBackgroundImageError: (exception, stackTrace) {},
-                  child: null,
+                  foregroundImage: place.imageProvider,
+                  onForegroundImageError: place.imageProvider == null
+                      ? null
+                      : (exception, stackTrace) {},
+                  child: const Icon(Icons.landscape_outlined),
                 ),
-                title: Text(place.name, maxLines: 2, overflow: TextOverflow.ellipsis),
-                subtitle: Text(place.region, maxLines: 1, overflow: TextOverflow.ellipsis),
-                trailing: _favoriteIds.contains(place.id)
-                    ? Icon(Icons.favorite, size: 17, color: Theme.of(context).colorScheme.error)
+                title: Text(place.name,
+                    maxLines: 2, overflow: TextOverflow.ellipsis),
+                subtitle: Text(
+                  '${place.region} · ★ '
+                  '${summary.hasRating ? summary.label : 'Шинэ'}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                trailing: isFavorite(place.id)
+                    ? Icon(Icons.favorite, size: 17, color: colors.error)
                     : null,
-                onTap: () => setState(() => _selectedPlace = place),
+                onTap: () => setState(() => _selectedId = place.id),
               );
             },
           ),
@@ -464,12 +369,8 @@ class _HomeScreenState extends State<HomeScreen> {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(18),
             child: ColoredBox(
-              color: Theme.of(context).colorScheme.surfaceContainerLowest,
-              child: PlaceDetailView(
-                place: selected,
-                isFavorite: _favoriteIds.contains(selected.id),
-                onFavoriteToggle: () => _toggleFavorite(selected),
-              ),
+              color: colors.surfaceContainerLowest,
+              child: PlaceDetailView(place: selected),
             ),
           ),
         ),
@@ -479,16 +380,18 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.showingFavorites, required this.query});
+  const _EmptyState({required this.showingFavorites, required this.filtered});
 
   final bool showingFavorites;
-  final String query;
+
+  /// Хайлт эсвэл улирлын шүүлтүүр идэвхтэй эсэх.
+  final bool filtered;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -500,7 +403,7 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 14),
             Text(
-              query.isNotEmpty
+              filtered
                   ? 'Таны хайлтад тохирох газар олдсонгүй.'
                   : 'Одоогоор дуртай газар алга.',
               textAlign: TextAlign.center,
@@ -508,11 +411,14 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              query.isNotEmpty
+              filtered
                   ? 'Өөр нэр, аймаг эсвэл улирлаар хайж үзээрэй.'
                   : 'Карт дээрх зүрхэн товчийг дарж дуртай газраа хадгална уу.',
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: colors.onSurfaceVariant),
             ),
           ],
         ),

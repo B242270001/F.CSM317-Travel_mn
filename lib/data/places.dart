@@ -1,14 +1,20 @@
 import '../models/place.dart';
 
-/// Байгалийн 10 газрын жишээ өгөгдөл.
+/// Тохиромжтой улирлын сонголтууд (шүүлтүүр ба “Газар нэмэх” формд).
+const seasons = ['Хавар', 'Зун', 'Намар', 'Өвөл'];
+
+/// Байгалийн 10 газрын жишээ өгөгдөл. Шинэ газар нэмэх боломжтой тул const биш.
+/// Координат нь тухайн газрын ойролцоо төв цэг; openstreetmap.org дээр тулгаж нарийвчилна.
+/// Үнэлгээний тоо (ratingCount) нь жишээ өгөгдөл.
 /// Зай нь Улаанбаатараас ойролцоолсон аяллын зай бөгөөд маршрут бүрд өөр байж болно.
 /// Үнэлгээ нь жишээ өгөгдөл бөгөөд Wikipedia-ийн үнэлгээ биш.
-const List<Place> places = [
-  Place(
+final places = <Place>[
+  const Place(
     id: 'terelj',
     name: 'Горхи-Тэрэлжийн байгалийн цогцолборт газар',
     region: 'Төв аймаг',
     image: 'assets/images/terelj.png',
+    extraImages: ['assets/images/terelj02.png'],
     description:
         'Горхи-Тэрэлж нь Улаанбаатар хотын зүүн хойд хэсэгт орших, '
         '1993 онд байгуулагдсан байгалийн цогцолборт газар юм. '
@@ -21,14 +27,18 @@ const List<Place> places = [
         'зэлүүд нутагтай. Хагийн Хар нуур, Естийн халуун рашаан зэрэг '
         'байгалийн дурсгалт газрууд мөн энэ бүсэд оршдог.',
     rating: 4.7,
+    ratingCount: 128,
     distanceKm: 55,
     bestSeason: 'Зун, намар',
+    latitude: 47.9071,
+    longitude: 107.4209,
   ),
-  Place(
+  const Place(
     id: 'khuvsgul',
     name: 'Хөвсгөл нуур',
     region: 'Хөвсгөл аймаг',
     image: 'assets/images/khuvsgul.png',
+    extraImages: ['assets/images/khuvsgul02.png'],
     description:
         'Хөвсгөл нуур нь Монгол Улсын хойд хэсэгт орших, усны эзлэхүүнээрээ '
         'улсын хэмжээнд хамгийн том, хамгийн гүн цэнгэг уст нуур юм. '
@@ -41,14 +51,18 @@ const List<Place> places = [
         'хосолсон өвөрмөц төрхтэй. Нуурын өмнөд эрэгт Хатгал, '
         'хойд эрэгт Ханх суурин байрладаг.',
     rating: 4.9,
+    ratingCount: 214,
     distanceKm: 778,
     bestSeason: 'Зун, өвөл',
+    latitude: 51.0500,
+    longitude: 100.4833,
   ),
-  Place(
+  const Place(
     id: 'gobi',
     name: 'Хонгорын элс',
     region: 'Өмнөговь аймаг',
     image: 'assets/images/gobi.png',
+    extraImages: ['assets/images/gobi02.png'],
     description:
         'Хонгорын элс нь Өмнөговь аймгийн Говь Гурвансайханы байгалийн '
         'цогцолборт газарт орших өргөн уудам элсэн манхны тогтолцоо юм. '
@@ -61,14 +75,18 @@ const List<Place> places = [
         'Өдрийн гэрлийн өөрчлөлтөөс шалтгаалан элсний өнгө '
         'шаргал, цайвар туяагаар хувирч харагддаг.',
     rating: 4.8,
+    ratingCount: 156,
     distanceKm: 780,
     bestSeason: 'Хавар, намар',
+    latitude: 43.7670,
+    longitude: 102.2500,
   ),
-  Place(
+  const Place(
     id: 'orkhon',
     name: 'Улаан цутгалан хүрхрээ',
     region: 'Өвөрхангай аймаг',
     image: 'assets/images/orkhon.png',
+    extraImages: ['assets/images/orkhon02.png'],
     description:
         'Улаан цутгалан нь Өвөрхангай аймгийн Бат-Өлзий сумын нутагт '
         'орших байгалийн үзэсгэлэнт хүрхрээ юм. '
@@ -81,14 +99,18 @@ const List<Place> places = [
         'байдаг нь энэ бүсийн гол мөрөн, байгалийн тогтцын '
         'олон янз байдлыг харуулдаг.',
     rating: 4.8,
+    ratingCount: 97,
     distanceKm: 450,
     bestSeason: 'Зун',
+    latitude: 46.7870,
+    longitude: 101.9603,
   ),
-  Place(
+  const Place(
     id: 'altai-tavan-bogd',
     name: 'Алтай Таван Богд',
     region: 'Баян-Өлгий аймаг',
     image: 'assets/images/altai_tavan_bogd.png',
+    extraImages: ['assets/images/altai_tavan_bogd02.png'],
     description:
         'Алтай Таван Богд нь Монгол Улсын баруун хязгаар, Баян-Өлгий '
         'аймагт орших өндөр уулсын цогц бөгөөд Монгол, Орос, Хятадын '
@@ -102,14 +124,18 @@ const List<Place> places = [
         'хязгаарлагдахгүй, уулын нуур, гол мөрөн, тэдгээрийн '
         'хүрээлэн буй байгалийн цогц орчныг хамардаг.',
     rating: 4.9,
+    ratingCount: 64,
     distanceKm: 1700,
     bestSeason: 'Зун',
+    latitude: 49.1458,
+    longitude: 87.8189,
   ),
-  Place(
+  const Place(
     id: 'tsagaan-suvarga',
     name: 'Цагаан суварга',
     region: 'Дундговь аймаг',
     image: 'assets/images/tsagaan_suvarga.png',
+    extraImages: ['assets/images/tsagaan_suvarga02.png'],
     description:
         'Цагаан суварга нь Дундговь аймгийн Өлзийт сумын нутагт орших, '
         'олон өнгийн үе давхарга бүхий тунамал хадан тогтоц юм. '
@@ -123,14 +149,18 @@ const List<Place> places = [
         'Тус тогтоц нь говийн байгалийн элэгдэл, '
         'тунамал чулуулгийн үе давхаргыг ажиглах боломжтой газар юм.',
     rating: 4.7,
+    ratingCount: 83,
     distanceKm: 420,
     bestSeason: 'Хавар, намар',
+    latitude: 44.5797,
+    longitude: 105.7256,
   ),
-  Place(
+  const Place(
     id: 'khorgo',
     name: 'Хорго уул, Тэрхийн цагаан нуур',
     region: 'Архангай аймаг',
     image: 'assets/images/khorgo.png',
+    extraImages: ['assets/images/khorgo02.png'],
     description:
         'Хорго уул, Тэрхийн Цагаан нуур нь Архангай аймгийн Тариат '
         'сумын нутагт орших, галт уулын тогтоц болон цэнгэг уст нуур '
@@ -144,14 +174,18 @@ const List<Place> places = [
         'Хар хүрмэн чулуу, шинэс модон ой, нуурын ус хосолсон '
         'байгалийн төрх нь тус нутгийн онцлогийг бүрдүүлдэг.',
     rating: 4.8,
+    ratingCount: 102,
     distanceKm: 650,
     bestSeason: 'Зун',
+    latitude: 48.1861,
+    longitude: 99.8556,
   ),
-  Place(
+  const Place(
     id: 'hustai',
     name: 'Хустайн нурууны байгалийн цогцолборт газар',
     region: 'Төв аймаг',
     image: 'assets/images/hustai.png',
+    extraImages: ['assets/images/hustai02.png'],
     description:
         'Хустайн нуруу нь Төв аймагт, Улаанбаатар хотоос баруун тийш '
         'орших, тахь сэргээн нутагшуулах үйл ажиллагаагаараа '
@@ -166,14 +200,18 @@ const List<Place> places = [
         '2002 онд ЮНЕСКО-гийн дэлхийн шим мандлын '
         'нөөц газрын сүлжээнд бүртгэгдсэн.',
     rating: 4.6,
+    ratingCount: 91,
     distanceKm: 100,
     bestSeason: 'Хавар, намар',
+    latitude: 47.7000,
+    longitude: 105.9000,
   ),
-  Place(
+  const Place(
     id: 'yolyn-am',
     name: 'Ёлын ам',
     region: 'Өмнөговь аймаг',
     image: 'assets/images/yolyn_am.png',
+    extraImages: ['assets/images/yolyn_am02.png'],
     description:
         'Ёлын ам нь Өмнөговь аймгийн Говь Гурвансайханы байгалийн '
         'цогцолборт газрын Зүүн сайханы нуруунд орших '
@@ -188,14 +226,18 @@ const List<Place> places = [
         'бусад махчин шувууд, аргаль, янгир, огдой зэрэг амьтад '
         'амьдрах орчин бүрджээ.',
     rating: 4.7,
+    ratingCount: 118,
     distanceKm: 600,
     bestSeason: 'Зун',
+    latitude: 43.4881,
+    longitude: 104.0667,
   ),
-  Place(
+  const Place(
     id: 'uvs-lake',
     name: 'Увс нуур',
     region: 'Увс аймаг',
     image: 'assets/images/uvs_lake.png',
+    extraImages: ['assets/images/uvs_lake02.png'],
     description:
         'Увс нуур нь Монгол Улсын баруун хойд хэсэгт орших, '
         'гадагш урсгалгүй, давсархаг уст томоохон нуур юм. '
@@ -210,7 +252,10 @@ const List<Place> places = [
         'тус ай савыг 2003 онд ЮНЕСКО-гийн Дэлхийн байгалийн '
         'өвийн жагсаалтад бүртгэсэн.',
     rating: 4.6,
+    ratingCount: 47,
     distanceKm: 1400,
     bestSeason: 'Зун, намар',
+    latitude: 50.3000,
+    longitude: 92.7000,
   ),
 ];

@@ -1,70 +1,21 @@
-import 'dart:io';
-import 'package:flutter/foundation.dart';
+// lib/widgets/place_card.dart
 import 'package:flutter/material.dart';
 
 import '../models/place.dart';
+import '../state/ratings.dart';
+import 'favorite_button.dart';
+import 'place_image.dart';
 
 class PlaceCard extends StatelessWidget {
-  const PlaceCard({
-    super.key,
-    required this.place,
-    this.onTap,
-    this.isFavorite = false,
-    this.onFavoriteToggle,
-  });
+  const PlaceCard({super.key, required this.place, this.onTap});
 
   final Place place;
   final VoidCallback? onTap;
-  final bool isFavorite;
-  final VoidCallback? onFavoriteToggle;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-
-    Widget buildImage() {
-      if (place.image.startsWith('assets/')) {
-        return Image.asset(
-          place.image,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => Container(
-            color: colors.surfaceContainerHighest,
-            child: Icon(
-              Icons.landscape_outlined,
-              size: 48,
-              color: colors.onSurfaceVariant,
-            ),
-          ),
-        );
-      } else if (kIsWeb) {
-        return Image.network(
-          place.image,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => Container(
-            color: colors.surfaceContainerHighest,
-            child: Icon(
-              Icons.broken_image,
-              size: 48,
-              color: colors.onSurfaceVariant,
-            ),
-          ),
-        );
-      } else {
-        return Image.file(
-          File(place.image),
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => Container(
-            color: colors.surfaceContainerHighest,
-            child: Icon(
-              Icons.broken_image,
-              size: 48,
-              color: colors.onSurfaceVariant,
-            ),
-          ),
-        );
-      }
-    }
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -74,14 +25,12 @@ class PlaceCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Үлдсэн өндрийг зураг эзэлнэ — overflow гарахаас сэргийлнэ
             Expanded(
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Hero(
-                    tag: 'place-image-${place.id}',
-                    child: buildImage(),
-                  ),
+                  PlaceImage(image: place.imageProvider),
                   Positioned(
                     left: 8,
                     top: 8,
@@ -92,7 +41,7 @@ class PlaceCard extends StatelessWidget {
                         vertical: 5,
                       ),
                       decoration: BoxDecoration(
-                        color: colors.surface.withOpacity(0.92),
+                        color: colors.surface.withValues(alpha: 0.92),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
@@ -109,19 +58,7 @@ class PlaceCard extends StatelessWidget {
                   Positioned(
                     right: 4,
                     top: 4,
-                    child: IconButton.filledTonal(
-                      visualDensity: VisualDensity.compact,
-                      tooltip: isFavorite ? 'Дуртайгаас хасах' : 'Дуртайд нэмэх',
-                      onPressed: onFavoriteToggle,
-                      icon: Icon(
-                        isFavorite ? Icons.favorite : Icons.favorite_border,
-                        color: isFavorite ? colors.error : colors.onSurface,
-                        size: 20,
-                      ),
-                      style: IconButton.styleFrom(
-                        backgroundColor: colors.surface.withOpacity(0.92),
-                      ),
-                    ),
+                    child: FavoriteButton(placeId: place.id, compact: true),
                   ),
                 ],
               ),
@@ -160,11 +97,19 @@ class PlaceCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 5),
-                      Icon(Icons.star_rounded, size: 16, color: colors.tertiary),
+                      const Icon(Icons.star_rounded,
+                          size: 16, color: Colors.amber),
                       const SizedBox(width: 2),
-                      Text(
-                        place.rating.toStringAsFixed(1),
-                        style: theme.textTheme.labelMedium,
+                      // Хэрэглэгч үнэлгээ өгөхөд дундаж шууд шинэчлэгдэнэ
+                      ValueListenableBuilder<Map<String, int>>(
+                        valueListenable: userRatings,
+                        builder: (context, ratings, _) {
+                          final summary = ratingOf(place, ratings);
+                          return Text(
+                            summary.hasRating ? summary.label : 'Шинэ',
+                            style: theme.textTheme.labelMedium,
+                          );
+                        },
                       ),
                     ],
                   ),

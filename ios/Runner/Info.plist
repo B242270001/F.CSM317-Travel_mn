@@ -66,5 +66,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Аяллын газрын зураг сонгоход зургийн санд хандана.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Аяллын газрын зураг авахад камер ашиглана.</string>
 </dict>
 </plist>
