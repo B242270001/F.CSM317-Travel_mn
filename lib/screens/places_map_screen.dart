@@ -95,8 +95,10 @@ class _PlacesMapScreenState extends State<PlacesMapScreen> {
             left: 12,
             child: Card(
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 child: Text('${located.length} газар · тэмдэг дээр дарна уу'),
               ),
             ),

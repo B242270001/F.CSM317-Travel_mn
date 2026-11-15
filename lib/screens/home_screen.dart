@@ -6,6 +6,8 @@ import '../models/place.dart';
 import '../state/auth_service.dart';
 import '../state/favorites.dart';
 import '../state/ratings.dart';
+import '../state/store.dart';
+import '../state/trip.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/place_card.dart';
 import 'detail_screen.dart';
@@ -28,14 +30,18 @@ class _HomeScreenState extends State<HomeScreen> {
   String _selectedId = places.first.id; // том дэлгэцэд сонгосон газар
 
   /// Хайлт, улирал, дуртай шүүлтүүр ба эрэмбийг хэрэглэсэн жагсаалт.
-  List<Place> _visiblePlaces(Set<String> favoriteIds, Map<String, int> ratings) {
+  List<Place> _visiblePlaces(
+    Set<String> favoriteIds,
+    Map<String, int> ratings,
+  ) {
     final query = _query.trim().toLowerCase();
     final season = _season?.toLowerCase();
     final result = places.where((place) {
       final favoriteMatches = !_showFavorites || favoriteIds.contains(place.id);
       final seasonMatches =
           season == null || place.bestSeason.toLowerCase().contains(season);
-      final queryMatches = query.isEmpty ||
+      final queryMatches =
+          query.isEmpty ||
           place.name.toLowerCase().contains(query) ||
           place.region.toLowerCase().contains(query) ||
           place.description.toLowerCase().contains(query) ||
@@ -84,7 +90,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final newPlace = await context.push<Place>('/add');
     if (!mounted || newPlace == null) return;
     setState(() {
-      places.insert(0, newPlace);
+      addUserPlace(newPlace); // жагсаалт + өгөгдлийн сан
       _selectedId = newPlace.id;
       _showFavorites = false;
       _season = null;
@@ -109,10 +115,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // Дуртай эсвэл үнэлгээ өөрчлөгдөхөд жагсаалт, эрэмбэ шууд шинэчлэгдэнэ
     return ListenableBuilder(
-      listenable: Listenable.merge([favorites, userRatings]),
+      listenable: Listenable.merge([favorites, userRatings, trip]),
       builder: (context, _) {
-        final visiblePlaces =
-            _visiblePlaces(favorites.value, userRatings.value);
+        final visiblePlaces = _visiblePlaces(
+          favorites.value,
+          userRatings.value,
+        );
 
         return Scaffold(
           appBar: AppBar(
@@ -124,9 +132,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: const Icon(Icons.search),
               ),
               IconButton(
-                tooltip: 'Газрын зураг',
-                onPressed: () => context.push('/places-map'),
-                icon: const Icon(Icons.map_outlined),
+                tooltip: 'Миний аялал',
+                onPressed: () => context.push('/trip'),
+                icon: Badge(
+                  isLabelVisible: trip.active,
+                  child: const Icon(Icons.luggage_outlined),
+                ),
               ),
               const SizedBox(width: 4),
             ],
@@ -174,7 +185,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Монгол орныг\nөөр өнцгөөс нээ',
+                                'Сайн байна уу, ${auth.displayName}!\nХаашаа аялах вэ?',
                                 style: theme.textTheme.titleLarge?.copyWith(
                                   fontWeight: FontWeight.w800,
                                   color: colors.onPrimaryContainer,
@@ -183,7 +194,10 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               const SizedBox(height: 7),
                               Text(
-                                'Байгаль, уул ус, хээр талын аяллаа төлөвлөөрэй.',
+                                trip.active
+                                    ? 'Аялал: ${trip.route!.name} · '
+                                          '${trip.doneCount}/${trip.route!.dayCount} өдөр'
+                                    : 'Бэлэн маршрут сонгоод сүлжээгүй ч аялаарай.',
                                 style: theme.textTheme.bodyMedium?.copyWith(
                                   color: colors.onPrimaryContainer,
                                 ),
@@ -192,8 +206,11 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        Icon(Icons.terrain_rounded,
-                            size: 64, color: colors.primary),
+                        Icon(
+                          Icons.terrain_rounded,
+                          size: 64,
+                          color: colors.primary,
+                        ),
                       ],
                     ),
                   ),
@@ -255,14 +272,16 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       Text(
                         _showFavorites ? 'Дуртай газрууд' : 'Байгалийн газрууд',
-                        style: theme.textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w800),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                       const Spacer(),
                       Text(
                         '${visiblePlaces.length} газар',
-                        style: theme.textTheme.bodySmall
-                            ?.copyWith(color: colors.onSurfaceVariant),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colors.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ),
@@ -273,16 +292,21 @@ class _HomeScreenState extends State<HomeScreen> {
                         if (visiblePlaces.isEmpty) {
                           return _EmptyState(
                             showingFavorites: _showFavorites,
-                            filtered: _query.trim().isNotEmpty ||
-                                _season != null,
+                            filtered:
+                                _query.trim().isNotEmpty || _season != null,
                           );
                         }
                         if (constraints.maxWidth >= 840) {
                           return _buildWideLayout(
-                              context, constraints.maxWidth, visiblePlaces);
+                            context,
+                            constraints.maxWidth,
+                            visiblePlaces,
+                          );
                         }
                         return _buildGridLayout(
-                            constraints.maxWidth, visiblePlaces);
+                          constraints.maxWidth,
+                          visiblePlaces,
+                        );
                       },
                     ),
                   ),
@@ -318,10 +342,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildWideLayout(
-      BuildContext context, double width, List<Place> items) {
+    BuildContext context,
+    double width,
+    List<Place> items,
+  ) {
     final colors = Theme.of(context).colorScheme;
-    final selected = items.where((p) => p.id == _selectedId).firstOrNull ??
-        items.first;
+    final selected =
+        items.where((p) => p.id == _selectedId).firstOrNull ?? items.first;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -337,7 +364,8 @@ class _HomeScreenState extends State<HomeScreen> {
               final summary = ratingOf(place);
               return ListTile(
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
+                  borderRadius: BorderRadius.circular(14),
+                ),
                 selected: place.id == selected.id,
                 selectedTileColor: colors.secondaryContainer,
                 leading: CircleAvatar(
@@ -347,8 +375,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       : (exception, stackTrace) {},
                   child: const Icon(Icons.landscape_outlined),
                 ),
-                title: Text(place.name,
-                    maxLines: 2, overflow: TextOverflow.ellipsis),
+                title: Text(
+                  place.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 subtitle: Text(
                   '${place.region} · ★ '
                   '${summary.hasRating ? summary.label : 'Шинэ'}',
@@ -415,10 +446,9 @@ class _EmptyState extends StatelessWidget {
                   ? 'Өөр нэр, аймаг эсвэл улирлаар хайж үзээрэй.'
                   : 'Карт дээрх зүрхэн товчийг дарж дуртай газраа хадгална уу.',
               textAlign: TextAlign.center,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: colors.onSurfaceVariant),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
             ),
           ],
         ),

@@ -381,8 +381,9 @@ class _InfoPanel extends StatelessWidget {
                           Text(
                             '${p.coordinates} · Улаанбаатараас ~'
                             '${distanceFromUbKm(p.latitude, p.longitude)} км',
-                            style: text.bodySmall
-                                ?.copyWith(color: scheme.onSurfaceVariant),
+                            style: text.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
                           ),
                         ],
                       ),

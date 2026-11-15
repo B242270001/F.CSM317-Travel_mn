@@ -1,6 +1,7 @@
 // lib/screens/login_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 
 import '../state/auth_service.dart';
 
@@ -46,8 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final text = Theme.of(context).textTheme;
     // Градиент бараан бол статус мөрийн дүрсийг цагаан болгоно
     final darkBackground =
-        ThemeData.estimateBrightnessForColor(scheme.primary) ==
-            Brightness.dark;
+        ThemeData.estimateBrightnessForColor(scheme.primary) == Brightness.dark;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: darkBackground
@@ -104,6 +104,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
                           child: _buildForm(text),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextButton(
+                        onPressed: () => context.go('/register'),
+                        child: Text(
+                          'Бүртгэлгүй юу? Бүртгүүлэх',
+                          style: TextStyle(color: scheme.onPrimary),
                         ),
                       ),
                     ],

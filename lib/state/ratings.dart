@@ -1,6 +1,7 @@
 // lib/state/ratings.dart
 import 'package:flutter/foundation.dart';
 
+import '../db/app_db.dart';
 import '../models/place.dart';
 
 /// Хэрэглэгчийн өгсөн үнэлгээ: газрын id → 1–5 од.
@@ -10,6 +11,7 @@ void ratePlace(String placeId, int stars) {
   assert(stars >= 1 && stars <= 5);
   // Шинэ Map оноох нь чухал: байгаа map-ийг өөрчилбөл сонсогчдод мэдэгдэхгүй
   userRatings.value = {...userRatings.value, placeId: stars};
+  AppDb.write('ratings', userRatings.value);
 }
 
 /// Газрын шинэчлэгдсэн дундаж үнэлгээ ба үнэлгээний тоо.

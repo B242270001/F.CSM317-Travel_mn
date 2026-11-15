@@ -39,23 +39,26 @@ class AppDrawer extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Icon(Icons.travel_explore,
-                      size: 38, color: colors.onPrimaryContainer),
+                  Icon(
+                    Icons.travel_explore,
+                    size: 38,
+                    color: colors.onPrimaryContainer,
+                  ),
                   const SizedBox(height: 10),
                   Text(
                     'TRAVEL MONGOLIA',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: colors.onPrimaryContainer,
-                        ),
+                      fontWeight: FontWeight.w800,
+                      color: colors.onPrimaryContainer,
+                    ),
                   ),
                   Text(
                     email ?? 'Монгол орноо нээцгээе',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: colors.onPrimaryContainer,
-                        ),
+                      color: colors.onPrimaryContainer,
+                    ),
                   ),
                 ],
               ),

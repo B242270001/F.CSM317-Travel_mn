@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 
+import 'db/app_db.dart';
 import 'router.dart';
+import 'state/store.dart';
 
-void main() => runApp(const TravelApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await AppDb.init(); // локал өгөгдлийн сан
+  loadState(); // дуртай, үнэлгээ, аялал, нэмсэн газруудыг сэргээнэ
+  runApp(const TravelApp());
+}
 
 class TravelApp extends StatelessWidget {
   const TravelApp({super.key});

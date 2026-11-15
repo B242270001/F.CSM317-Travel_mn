@@ -82,8 +82,9 @@ void main() {
     expect(places.every((p) => p.hasLocation), isTrue);
   });
 
-  testWidgets('Нэвтрээгүй үед нэвтрэх дэлгэц, нэвтэрсний дараа нүүр дэлгэц',
-      (tester) async {
+  testWidgets('Нэвтрээгүй үед нэвтрэх дэлгэц, нэвтэрсний дараа нүүр дэлгэц', (
+    tester,
+  ) async {
     await tester.pumpWidget(const TravelApp());
     await tester.pumpAndSettle();
     expect(find.text('Нэвтрэх'), findsWidgets);

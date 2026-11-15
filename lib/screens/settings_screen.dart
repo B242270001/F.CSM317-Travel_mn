@@ -38,10 +38,22 @@ class SettingsScreen extends StatelessWidget {
         children: [
           ListTile(
             leading: const CircleAvatar(child: Icon(Icons.person_outline)),
-            title: Text(auth.email ?? 'Хэрэглэгч'),
-            subtitle: const Text('Нэвтэрсэн хэрэглэгч'),
+            title: Text(auth.displayName),
+            subtitle: Text(auth.email ?? 'Нэвтэрсэн хэрэглэгч'),
           ),
           const Divider(),
+          ListTile(
+            leading: const Icon(Icons.luggage_outlined),
+            title: const Text('Миний аялал'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/trip'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.download_for_offline_outlined),
+            title: const Text('Офлайн газрын зураг'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/offline'),
+          ),
           ListTile(
             leading: const Icon(Icons.lock_reset),
             title: const Text('Нууц үг солих'),
@@ -50,8 +62,10 @@ class SettingsScreen extends StatelessWidget {
           ),
           ListTile(
             leading: Icon(Icons.logout, color: colors.error),
-            title: Text('Системээс гарах',
-                style: TextStyle(color: colors.error)),
+            title: Text(
+              'Системээс гарах',
+              style: TextStyle(color: colors.error),
+            ),
             onTap: () => _confirmLogout(context),
           ),
         ],

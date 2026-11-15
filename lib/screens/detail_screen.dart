@@ -19,9 +19,9 @@ class DetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: Text(place.name)),
-        body: PlaceDetailView(place: place),
-      );
+    appBar: AppBar(title: Text(place.name)),
+    body: PlaceDetailView(place: place),
+  );
 }
 
 /// Scaffold-гүй дэлгэрэнгүй хэсэг. Том дэлгэцийн master-detail layout-д ашиглана.
@@ -352,8 +352,9 @@ class _Stat extends StatelessWidget {
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.labelSmall
-                ?.copyWith(color: colors.onSurfaceVariant),
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: colors.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
@@ -361,8 +362,9 @@ class _Stat extends StatelessWidget {
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.titleSmall
-                ?.copyWith(fontWeight: FontWeight.w800),
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ],
       ),

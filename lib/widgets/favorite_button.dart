@@ -5,7 +5,11 @@ import '../state/favorites.dart';
 
 /// Дуртайд нэмэх / хасах зүрхэн товч. Төлөв өөрчлөгдөхөд өөрөө дахин зурагдана.
 class FavoriteButton extends StatelessWidget {
-  const FavoriteButton({super.key, required this.placeId, this.compact = false});
+  const FavoriteButton({
+    super.key,
+    required this.placeId,
+    this.compact = false,
+  });
 
   final String placeId;
 

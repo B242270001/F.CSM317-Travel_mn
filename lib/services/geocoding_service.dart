@@ -83,14 +83,14 @@ class Geocoding {
   /// Хэрэглэгчийн дарсан яг цэгийн координатыг хадгална.
   static PickedLocation? _at(PickedLocation? r, double lat, double lng) =>
       r == null
-          ? null
-          : PickedLocation(
-              latitude: lat,
-              longitude: lng,
-              address: r.address,
-              name: r.name,
-              region: r.region,
-            );
+      ? null
+      : PickedLocation(
+          latitude: lat,
+          longitude: lng,
+          address: r.address,
+          name: r.name,
+          region: r.region,
+        );
 
   /// Хүсэлтүүдийг дараалалд оруулж, хооронд нь 1 секундээс их зай гаргана.
   static Future<Object?> _get(String path, Map<String, String> params) {

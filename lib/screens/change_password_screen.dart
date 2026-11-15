@@ -154,8 +154,9 @@ class _StrengthMeter extends StatelessWidget {
             value: strength.value,
             minHeight: 6,
             color: color,
-            backgroundColor:
-                Theme.of(context).colorScheme.surfaceContainerHighest,
+            backgroundColor: Theme.of(
+              context,
+            ).colorScheme.surfaceContainerHighest,
             semanticsLabel: 'Нууц үгийн хүч',
             semanticsValue: strength.label,
           ),
@@ -163,10 +164,10 @@ class _StrengthMeter extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           'Нууц үгийн хүч: ${strength.label}',
-          style: Theme.of(context)
-              .textTheme
-              .bodySmall
-              ?.copyWith(color: color, fontWeight: FontWeight.w600),
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: color,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ],
     );

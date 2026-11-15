@@ -97,8 +97,11 @@ class PlaceCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 5),
-                      const Icon(Icons.star_rounded,
-                          size: 16, color: Colors.amber),
+                      const Icon(
+                        Icons.star_rounded,
+                        size: 16,
+                        color: Colors.amber,
+                      ),
                       const SizedBox(width: 2),
                       // Хэрэглэгч үнэлгээ өгөхөд дундаж шууд шинэчлэгдэнэ
                       ValueListenableBuilder<Map<String, int>>(

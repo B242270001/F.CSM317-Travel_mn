@@ -67,4 +67,33 @@ class Place {
     final all = imageProviders;
     return all.isEmpty ? null : all.first;
   }
+
+  /// Өгөгдлийн санд хадгалах хэлбэр (хэрэглэгчийн нэмсэн газарт).
+  Map<String, dynamic> toMap() => {
+    'id': id,
+    'name': name,
+    'region': region,
+    'description': description,
+    'distanceKm': distanceKm,
+    'bestSeason': bestSeason,
+    'latitude': latitude,
+    'longitude': longitude,
+    'userImages': userImages,
+  };
+
+  factory Place.fromMap(Map<dynamic, dynamic> m) => Place(
+    id: m['id'] as String,
+    name: m['name'] as String,
+    region: m['region'] as String,
+    image: '',
+    description: m['description'] as String,
+    rating: 0,
+    distanceKm: (m['distanceKm'] as num?)?.toInt() ?? 0,
+    bestSeason: m['bestSeason'] as String,
+    latitude: (m['latitude'] as num?)?.toDouble(),
+    longitude: (m['longitude'] as num?)?.toDouble(),
+    userImages: ((m['userImages'] as List?) ?? const [])
+        .map((e) => Uint8List.fromList((e as List).cast<int>()))
+        .toList(),
+  );
 }
