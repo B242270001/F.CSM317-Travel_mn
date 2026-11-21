@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../state/auth_service.dart';
+import '../state/subscription.dart';
+import '../widgets/premium_gate.dart';
 
 /// Тохиргоо: хэрэглэгчийн мэдээлэл, нууц үг солих, системээс гарах.
 class SettingsScreen extends StatelessWidget {
@@ -40,6 +42,22 @@ class SettingsScreen extends StatelessWidget {
             leading: const CircleAvatar(child: Icon(Icons.person_outline)),
             title: Text(auth.displayName),
             subtitle: Text(auth.email ?? 'Нэвтэрсэн хэрэглэгч'),
+          ),
+          ListenableBuilder(
+            listenable: subscription,
+            builder: (context, _) => ListTile(
+              leading: const Icon(Icons.workspace_premium, color: Colors.amber),
+              title: const Text('Premium захиалга'),
+              subtitle: Text(
+                subscription.isPremium
+                    ? 'Идэвхтэй · ${subscription.daysLeft} өдөр үлдсэн'
+                    : 'Үнэгүй хувилбар — шинэчлэх',
+              ),
+              trailing: subscription.isPremium
+                  ? const PremiumBadge(compact: true)
+                  : const Icon(Icons.chevron_right),
+              onTap: () => context.push('/premium'),
+            ),
           ),
           const Divider(),
           ListTile(

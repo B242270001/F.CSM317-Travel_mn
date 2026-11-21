@@ -34,11 +34,13 @@ const defaultChecklist = [
 
 const _ub = RouteStop('УБ', 47.9189, 106.9176);
 
-/// Бэлэн маршрутууд. Зай, цаг, зардал нь ойролцоо жишээ өгөгдөл бөгөөд
+/// Бэлэн маршрутууд. Зай, цаг, зардал, замын төрөл (засмал / шороон /
+/// бартаат) нь ойролцоо жишээ өгөгдөл бөгөөд
 /// бодит аяллын өмнө замын нөхцөлийг заавал шалгана.
 const travelRoutes = <TravelRoute>[
   TravelRoute(
     id: 'gobi',
+    premium: true,
     name: 'Говийн адал явдал',
     region: 'gobi',
     badge: 'Хамгийн их сонгогдсон',
@@ -51,12 +53,12 @@ const travelRoutes = <TravelRoute>[
     image: 'assets/images/gobi.png',
     stops: [
       _ub,
-      RouteStop('Цагаан суварга', 44.5797, 105.7256),
-      RouteStop('Ёлын ам', 43.4881, 104.0667),
-      RouteStop('Хонгорын элс', 43.7670, 102.2500),
-      RouteStop('Баянзаг', 44.1383, 103.7278),
-      RouteStop('Онгийн хийд', 45.3389, 104.0050),
-      RouteStop('Мандалговь', 45.7667, 106.2667),
+      RouteStop('Цагаан суварга', 44.5797, 105.7256, road: RoadType.dirt),
+      RouteStop('Ёлын ам', 43.4881, 104.0667, road: RoadType.dirt),
+      RouteStop('Хонгорын элс', 43.7670, 102.2500, road: RoadType.rough),
+      RouteStop('Баянзаг', 44.1383, 103.7278, road: RoadType.rough),
+      RouteStop('Онгийн хийд', 45.3389, 104.0050, road: RoadType.dirt),
+      RouteStop('Мандалговь', 45.7667, 106.2667, road: RoadType.dirt),
       _ub,
     ],
     days: [
@@ -139,8 +141,8 @@ const travelRoutes = <TravelRoute>[
       RouteStop('Хустай', 47.7000, 105.9000),
       RouteStop('Элсэн тасархай', 47.3300, 103.6800),
       RouteStop('Хархорин', 47.1975, 102.8239),
-      RouteStop('Улаан цутгалан', 46.7870, 101.9603),
-      RouteStop('Цэнхэр рашаан', 47.3200, 101.6500),
+      RouteStop('Улаан цутгалан', 46.7870, 101.9603, road: RoadType.rough),
+      RouteStop('Цэнхэр рашаан', 47.3200, 101.6500, road: RoadType.dirt),
       _ub,
     ],
     days: [
@@ -192,6 +194,7 @@ const travelRoutes = <TravelRoute>[
   ),
   TravelRoute(
     id: 'khuvsgul',
+    premium: true,
     name: 'Хөвсгөл далайн аялал',
     region: 'khuvsgul',
     badge: 'Зуны шилдэг',
@@ -207,7 +210,7 @@ const travelRoutes = <TravelRoute>[
       RouteStop('Эрдэнэт', 49.0278, 104.0444),
       RouteStop('Мөрөн', 49.6342, 100.1625),
       RouteStop('Хатгал', 50.4442, 100.1579),
-      RouteStop('Булган', 48.8125, 103.5347),
+      RouteStop('Булган', 48.8125, 103.5347, road: RoadType.dirt),
       _ub,
     ],
     days: [
@@ -280,7 +283,7 @@ const travelRoutes = <TravelRoute>[
     stops: [
       _ub,
       RouteStop('Тэрэлж', 47.9071, 107.4209),
-      RouteStop('Чингисийн хөшөө', 47.8081, 107.5297),
+      RouteStop('Чингисийн хөшөө', 47.8081, 107.5297, road: RoadType.dirt),
       _ub,
     ],
     days: [

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../models/travel_route.dart';
 import '../state/favorites.dart';
+import 'premium_gate.dart';
 
 /// 1850 → «1,850»
 String formatKm(int km) => km.toString().replaceAllMapped(
@@ -66,6 +67,12 @@ class RouteCard extends StatelessWidget {
                       foreground: Colors.black87,
                     ),
                   ),
+                  if (route.premium)
+                    const Positioned(
+                      right: 12,
+                      bottom: 12,
+                      child: PremiumBadge(),
+                    ),
                   Positioned(
                     right: 6,
                     top: 6,
@@ -135,6 +142,13 @@ class RouteCard extends StatelessWidget {
                         background: colors.surfaceContainerHigh,
                         foreground: colors.onSurface,
                       ),
+                      if (route.roughCount > 0)
+                        _Pill(
+                          icon: Icons.terrain,
+                          label: '${route.roughCount} бартаат хэсэг',
+                          background: RoadType.rough.color,
+                          foreground: Colors.white,
+                        ),
                     ],
                   ),
                 ],

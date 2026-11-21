@@ -4,6 +4,8 @@ import '../db/app_db.dart';
 import '../models/place.dart';
 import 'favorites.dart';
 import 'offline.dart';
+import 'place_order.dart';
+import 'road_marks.dart';
 import 'ratings.dart';
 import 'trip.dart';
 
@@ -15,6 +17,8 @@ void loadState() {
   offlineRegionIds.value = AppDb.readStrings('offlineRegions').toSet();
   wifiOnly.value = AppDb.read('wifiOnly') as bool? ?? true;
   trip.load();
+  loadRoadMarks();
+  placeOrder.value = AppDb.readStrings('placeOrder');
 
   // Хэрэглэгчийн нэмсэн газруудыг жагсаалтын эхэнд сэргээнэ
   final saved = (AppDb.read('userPlaces') as List?) ?? const [];

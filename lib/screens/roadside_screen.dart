@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../data/routes.dart';
 import '../models/poi.dart';
 import '../models/travel_route.dart';
+import '../state/road_marks.dart';
 import '../state/trip.dart';
 import '../utils/geo.dart';
 import '../widgets/route_map.dart';
@@ -65,7 +66,15 @@ class _RoadsideScreenState extends State<RoadsideScreen> {
         children: [
           SizedBox(
             height: 240,
-            child: RouteMap(route: route, pois: items, onPoiTap: _showPoi),
+            child: ValueListenableBuilder(
+              valueListenable: roadMarks,
+              builder: (context, _, _) => RouteMap(
+                route: route,
+                pois: items,
+                onPoiTap: _showPoi,
+                marks: marksOf(route.id),
+              ),
+            ),
           ),
           // Аялал идэвхтэй бол явцаас, үгүй бол эхлэлээс тооцно
           ListenableBuilder(
