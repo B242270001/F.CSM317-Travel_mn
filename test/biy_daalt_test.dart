@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:travel_mn/data/places.dart';
 import 'package:travel_mn/data/routes.dart';
+import 'package:travel_mn/data/zones.dart';
 import 'package:travel_mn/db/app_db.dart';
 import 'package:travel_mn/models/place.dart';
 import 'package:travel_mn/models/poi.dart';
@@ -30,7 +31,7 @@ void main() {
   });
 
   test('Маршрутын өгөгдөл: км, зогсоол, бүс, зам дээрх цэг', () {
-    expect(travelRoutes.length, 4);
+    expect(travelRoutes.length, 6);
     final gobi = routeById('gobi')!;
     expect(gobi.dayCount, 7);
     expect(gobi.totalKm, 1850);
@@ -49,6 +50,52 @@ void main() {
     expect(formatKm(1850), '1,850');
     expect(formatCost(1400000), '1.4 сая₮');
     expect(formatCost(850000), '850 мянга₮');
+  });
+
+  test('Маршрутын зогсоол газартай холбогдоно', () {
+    String? linked(String routeId, String stop) {
+      final s = routeById(routeId)!.stops.firstWhere((x) => x.name == stop);
+      return placeNear(s.latitude, s.longitude)?.id;
+    }
+
+    expect(linked('gobi', 'Баянзаг'), 'bayanzag');
+    expect(linked('gobi', 'Онгийн хийд'), 'ongi');
+    expect(linked('central', 'Хархорин'), 'erdene-zuu');
+    expect(linked('khuvsgul', 'Хатгал'), 'khatgal');
+    // 14 км зайтай Тэрэлжийг биш, хөшөөг өөрийг нь нээнэ
+    expect(linked('terelj', 'Чингисийн хөшөө'), 'chinggis-statue');
+    expect(linked('west', 'Хархорин'), 'erdene-zuu');
+    expect(linked('east', 'Хөх нуур'), 'khukh-nuur');
+    expect(linked('east', 'Дадал'), 'deluun-boldog');
+    expect(linked('east', 'Шилийн Богд'), 'shiliin-bogd');
+    expect(linked('east', 'Чойбалсан'), isNull);
+    expect(linked('west', 'Тэрхийн цагаан нуур'), 'khorgo');
+    // Хот, сум бол газар биш
+    expect(linked('gobi', 'Мандалговь'), isNull);
+  });
+
+  test('Зүүн бүс: маршрут, газрууд, офлайн бүс', () {
+    final east = routeById('east')!;
+    expect(east.dayCount, 8);
+    expect(east.totalKm, 2305);
+    expect(east.premium, isFalse);
+    expect(offlineRegions.any((o) => o.id == 'east'), isTrue);
+    expect(places.where((p) => zoneOf(p.region).id == 'east').length, 7);
+    // Чингис хотоос (405 км) Дадал хүртэл 258 км шатахуунгүй — сэрэмжлүүлнэ
+    expect(nextFuel('east', 405)!.place, 'Дадал');
+    expect(nextFuel('east', 405)!.km - 405, greaterThan(200));
+  });
+
+  test('Баруун хязгаарын маршрут: км, зогсоол, шатахуун', () {
+    final west = routeById('west')!;
+    expect(west.dayCount, 13);
+    expect(west.totalKm, 4005);
+    expect(west.stopCount, 11);
+    expect(west.region, 'west');
+    // Цэнгэлээс (1970 км) дараагийн шатахуун буцах замд Өлгийд — 325 км,
+    // тиймээс Хотон нуур руу явахаас өмнө сэрэмжлүүлнэ
+    expect(nextFuel('west', 1970)!.place, 'Өлгий');
+    expect(nextFuel('west', 1970)!.km - 1970, greaterThan(200));
   });
 
   test('Дараагийн шатахуун: явцаас хамаарч өөрчлөгдөнө', () {
@@ -88,6 +135,34 @@ void main() {
     trip.end();
     expect((TripState()..load()).active, isFalse);
   });
+
+  test(
+    'Миний аялал: хол өдрийг тэмдэглэхэд өмнөх өдрүүд, км хуримтлагдана',
+    () {
+      trip.start('gobi');
+      final gobi = routeById('gobi')!;
+      // 6-р өдрийг (Онгийн хийд → Мандалговь) шууд тэмдэглэнэ
+      trip.toggleDay(5);
+      expect(trip.doneCount, 6);
+      expect(trip.kmDone, gobi.kmAfterDays(6)); // УБ-аас хуримтлагдсан км
+      expect(trip.kmDone, 1580);
+      expect(trip.currentDay, 6);
+      // 3-р өдрийг арилгавал түүнээс хойших өдрүүд мөн арилна
+      trip.toggleDay(2);
+      expect(trip.doneCount, 2);
+      expect(trip.kmDone, 660);
+      // Тасархай хадгалсан хуучин өгөгдлийг дараалал болгож сэргээнэ
+      AppDb.write('trip', {
+        'routeId': 'gobi',
+        'doneDays': [0, 3],
+        'checklist': <String, bool>{},
+      });
+      final restored = TripState()..load();
+      expect(restored.doneCount, 4);
+      expect(restored.kmDone, 1040);
+      trip.end();
+    },
+  );
 
   test('Дуртай, үнэлгээ, офлайн бүс, нэмсэн газар сангаас сэргэнэ', () {
     toggleFavorite('terelj');

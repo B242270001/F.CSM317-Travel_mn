@@ -72,6 +72,7 @@ class _PlacesMapScreenState extends State<PlacesMapScreen> {
                       child: Tooltip(
                         message: place.name,
                         child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
                           onTap: () => context.push('/place/${place.id}'),
                           child: Icon(
                             Icons.location_pin,

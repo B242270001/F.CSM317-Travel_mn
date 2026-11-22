@@ -179,8 +179,10 @@ class _MyTripScreenState extends State<MyTripScreen> {
             subtitle: Text(
               '${route.days[i].km} км · '
               '~${formatHours(route.days[i].hours)} цаг · '
-              '${route.days[i].stay}',
+              '${route.days[i].stay}\n'
+              'УБ-аас нийт ${formatKm(route.kmAfterDays(i + 1))} км',
             ),
+            isThreeLine: true,
           ),
         const Divider(height: 28),
         Row(

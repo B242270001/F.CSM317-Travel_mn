@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../state/auth_service.dart';
+import '../theme.dart';
 import '../utils/validators.dart';
 import '../widgets/password_field.dart';
 
@@ -51,19 +52,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
 
     return Scaffold(
       body: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [scheme.primary, scheme.secondary, scheme.tertiary],
-            stops: const [0.0, 0.55, 1.0],
-          ),
-        ),
+        decoration: BoxDecoration(gradient: brandGradient),
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -76,7 +69,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     Text(
                       'Бүртгэл үүсгэх',
                       style: text.headlineMedium?.copyWith(
-                        color: scheme.onPrimary,
+                        color: brandForeground,
                         fontWeight: FontWeight.bold,
                       ),
                       textAlign: TextAlign.center,
@@ -163,7 +156,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       onPressed: () => context.go('/login'),
                       child: Text(
                         'Бүртгэлтэй юу? Нэвтрэх',
-                        style: TextStyle(color: scheme.onPrimary),
+                        style: TextStyle(color: brandForeground),
                       ),
                     ),
                   ],

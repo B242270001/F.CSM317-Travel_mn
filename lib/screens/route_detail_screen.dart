@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../data/hazards.dart';
+import '../data/routes.dart';
+import '../models/poi.dart';
 import '../models/travel_route.dart';
 import '../state/offline.dart';
 import '../state/road_marks.dart';
@@ -119,8 +121,15 @@ class RouteDetailScreen extends StatelessWidget {
               height: 300,
               child: ValueListenableBuilder(
                 valueListenable: roadMarks,
-                builder: (context, _, _) =>
-                    RouteMap(route: route, marks: marksOf(route.id)),
+                builder: (context, _, _) => RouteMap(
+                  route: route,
+                  marks: marksOf(route.id),
+                  // Маршрутын дагуух шатахуун түгээх станцууд
+                  pois: poisOf(
+                    route.id,
+                  ).where((p) => p.type == PoiType.fuel).toList(),
+                  onPoiTap: (_) => context.push('/route/${route.id}/roadside'),
+                ),
               ),
             ),
             Padding(

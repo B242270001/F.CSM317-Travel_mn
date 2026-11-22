@@ -77,8 +77,9 @@ void main() {
     expect(await service.login('a@b.mn', 'Shine2026'), isTrue);
   });
 
-  test('10 газар бүгд координаттай', () {
-    expect(places.length, 10);
+  test('27 газар бүгд координаттай, id давхардаагүй', () {
+    expect(places.length, 27);
+    expect(places.map((p) => p.id).toSet().length, places.length);
     expect(places.every((p) => p.hasLocation), isTrue);
   });
 

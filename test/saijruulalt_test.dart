@@ -55,7 +55,7 @@ void main() {
 
     expect(formatPrice(79000), '79,000₮');
     expect(PremiumPlan.yearly.perMonth, lessThan(PremiumPlan.monthly.price));
-    expect(travelRoutes.where((r) => r.premium).length, 2);
+    expect(travelRoutes.where((r) => r.premium).length, 3);
   });
 
   test('Бүс: аймгаас бүсийг олно', () {

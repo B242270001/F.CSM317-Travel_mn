@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import '../state/auth_service.dart';
+import '../theme.dart';
 
 /// Арын дэвсгэр: сэдвийн өнгөнөөс (primary → tertiary) үүсгэсэн градиент.
 class LoginScreen extends StatefulWidget {
@@ -43,26 +44,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
-    // Градиент бараан бол статус мөрийн дүрсийг цагаан болгоно
-    final darkBackground =
-        ThemeData.estimateBrightnessForColor(scheme.primary) == Brightness.dark;
-
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: darkBackground
-          ? SystemUiOverlayStyle.light
-          : SystemUiOverlayStyle.dark,
+      // Брэндийн градиент бараан тул статус мөрийн дүрс цагаан
+      value: SystemUiOverlayStyle.light,
       child: Scaffold(
         body: DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [scheme.primary, scheme.secondary, scheme.tertiary],
-              stops: const [0.0, 0.55, 1.0],
-            ),
-          ),
+          decoration: BoxDecoration(gradient: brandGradient),
           child: SafeArea(
             child: Center(
               child: SingleChildScrollView(
@@ -76,13 +64,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       Icon(
                         Icons.travel_explore,
                         size: 72,
-                        color: scheme.onPrimary,
+                        color: brandForeground,
                       ),
                       const SizedBox(height: 12),
                       Text(
                         'Аяллын газрууд',
                         style: text.headlineMedium?.copyWith(
-                          color: scheme.onPrimary,
+                          color: brandForeground,
                           fontWeight: FontWeight.bold,
                         ),
                         textAlign: TextAlign.center,
@@ -91,7 +79,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       Text(
                         'Монголын үзэсгэлэнт газруудыг нээ',
                         style: text.bodyLarge?.copyWith(
-                          color: scheme.onPrimary.withAlpha(220),
+                          color: brandForeground.withAlpha(220),
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -111,7 +99,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         onPressed: () => context.go('/register'),
                         child: Text(
                           'Бүртгэлгүй юу? Бүртгүүлэх',
-                          style: TextStyle(color: scheme.onPrimary),
+                          style: TextStyle(color: brandForeground),
                         ),
                       ),
                     ],

@@ -120,6 +120,50 @@ const roadHazards = <RoadHazard>[
     title: 'Нүх суваг ихтэй шороон зам',
     note: 'Тэрэлжээс хөшөө хүртэл удаан явна.',
   ),
+  // Баруун хязгаарын экспедиц
+  RoadHazard(
+    routeId: 'west',
+    segment: 6,
+    fraction: 0.5,
+    type: RoadMarkType.river,
+    title: 'Цагаан гол гатлах',
+    note: 'Зуны дунд мөсөн голын ус ихэсдэг. Өглөө эрт гатлах нь аюулгүй.',
+  ),
+  RoadHazard(
+    routeId: 'west',
+    segment: 6,
+    fraction: 0.85,
+    type: RoadMarkType.badRoad,
+    title: 'Чулуурхаг уулын зам',
+    note: 'Хотон нуур хүртэл зөвхөн өндөр явах эд ангитай машинаар.',
+  ),
+  RoadHazard(
+    routeId: 'west',
+    segment: 7,
+    fraction: 0.3,
+    type: RoadMarkType.checkpoint,
+    title: 'Хилийн бүсийн шалган нэвтрүүлэх',
+    note:
+        'Алтай Таван Богдод орохдоо хилийн зөвшөөрөл, бичиг баримтаа шалгуулна.',
+  ),
+  // Чингисийн өлгий нутаг
+  RoadHazard(
+    routeId: 'east',
+    segment: 1,
+    fraction: 0.8,
+    type: RoadMarkType.badRoad,
+    title: 'Ойн шороон зам',
+    note: 'Дадал хүрэх уулын зам борооны дараа шавартай, удаан явна.',
+  ),
+  RoadHazard(
+    routeId: 'east',
+    segment: 4,
+    fraction: 0.9,
+    type: RoadMarkType.checkpoint,
+    title: 'Хилийн бүс',
+    note:
+        'Шилийн Богд хилийн бүсэд тул хилийн зөвшөөрөл, бичиг баримт авч явна.',
+  ),
 ];
 
 List<RoadHazard> hazardsOf(String routeId) =>

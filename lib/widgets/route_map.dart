@@ -1,10 +1,12 @@
 // lib/widgets/route_map.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../config.dart';
 import '../data/hazards.dart';
+import '../data/places.dart';
 import '../data/route_shapes.dart';
 import '../models/poi.dart';
 import '../models/road_mark.dart';
@@ -105,46 +107,21 @@ class RouteMap extends StatelessWidget {
         ),
         MarkerLayer(
           markers: [
+            for (var i = 0; i < stops.length; i++)
+              _stopMarker(context, colors, stops[i], i),
+            // Үйлчилгээний цэгийг зогсоолын ДЭЭР зүү хэлбэрээр зурна —
+            // зогсоолтой ижил газар байсан ч (Мандалговь гэх мэт) далдлагдахгүй
             for (final p in pois)
               Marker(
                 point: LatLng(p.latitude, p.longitude),
                 width: 30,
-                height: 30,
+                height: 38,
+                alignment: Alignment.topCenter,
                 child: GestureDetector(
                   onTap: onPoiTap == null ? null : () => onPoiTap!(p),
                   child: Tooltip(
                     message: '${p.type.label} · ${p.place}',
-                    child: CircleAvatar(
-                      backgroundColor: p.type.color,
-                      child: Icon(p.type.icon, size: 16, color: Colors.white),
-                    ),
-                  ),
-                ),
-              ),
-            for (var i = 0; i < stops.length; i++)
-              Marker(
-                point: LatLng(stops[i].latitude, stops[i].longitude),
-                width: 28,
-                height: 28,
-                child: Tooltip(
-                  message: stops[i].name,
-                  child: Container(
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: i == 0 ? colors.inverseSurface : colors.surface,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: colors.primary, width: 2),
-                    ),
-                    child: Text(
-                      i == 0 ? 'УБ' : '$i',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: i == 0
-                            ? colors.onInverseSurface
-                            : colors.primary,
-                      ),
-                    ),
+                    child: _Pin(color: p.type.color, icon: p.type.icon),
                   ),
                 ),
               ),
@@ -189,6 +166,61 @@ class RouteMap extends StatelessWidget {
           source: Text('OpenStreetMap contributors'),
         ),
       ],
+    );
+  }
+
+  /// Зогсоолын дугаарласан тэмдэг. Зогсоол нь апп-ын газар (Цагаан суварга,
+  /// Ёлын ам ...) бол өнгөөр дүүргэж, дарахад тухайн газрын дэлгэрэнгүй нээнэ.
+  Marker _stopMarker(
+    BuildContext context,
+    ColorScheme colors,
+    RouteStop stop,
+    int index,
+  ) {
+    final isStart = index == 0;
+    final place = isStart ? null : placeNear(stop.latitude, stop.longitude);
+    final background = isStart
+        ? colors.inverseSurface
+        : place != null
+        ? colors.primary
+        : colors.surface;
+    final foreground = isStart
+        ? colors.onInverseSurface
+        : place != null
+        ? colors.onPrimary
+        : colors.primary;
+    final badge = Container(
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: background,
+        shape: BoxShape.circle,
+        border: Border.all(color: colors.primary, width: 2),
+      ),
+      child: Text(
+        isStart ? 'УБ' : '$index',
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          color: foreground,
+        ),
+      ),
+    );
+    return Marker(
+      point: LatLng(stop.latitude, stop.longitude),
+      width: 28,
+      height: 28,
+      child: Tooltip(
+        message: place == null ? stop.name : '${stop.name} · дэлгэрэнгүй',
+        child: place == null
+            ? badge
+            : MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTap: () => context.push('/place/${place.id}'),
+                  child: badge,
+                ),
+              ),
+      ),
     );
   }
 }
@@ -320,11 +352,23 @@ class RoadTypeSwatch extends StatelessWidget {
   }
 }
 
-/// Тэмдэглэгээний зүү: өнгөт дугуй + доош чиглэсэн сум.
+/// Тэмдэглэгээний зүү.
 class _MarkPin extends StatelessWidget {
   const _MarkPin({required this.type});
 
   final RoadMarkType type;
+
+  @override
+  Widget build(BuildContext context) =>
+      _Pin(color: type.color, icon: type.icon);
+}
+
+/// Зүү: өнгөт дугуй + доош чиглэсэн сум (үзүүр нь яг цэг дээр).
+class _Pin extends StatelessWidget {
+  const _Pin({required this.color, required this.icon});
+
+  final Color color;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
@@ -335,14 +379,14 @@ class _MarkPin extends StatelessWidget {
           width: 26,
           height: 26,
           decoration: BoxDecoration(
-            color: type.color,
+            color: color,
             shape: BoxShape.circle,
             border: Border.all(color: Colors.white, width: 2),
             boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 3)],
           ),
-          child: Icon(type.icon, size: 14, color: Colors.white),
+          child: Icon(icon, size: 14, color: Colors.white),
         ),
-        Icon(Icons.arrow_drop_down, size: 12, color: type.color),
+        Icon(Icons.arrow_drop_down, size: 12, color: color),
       ],
     );
   }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'db/app_db.dart';
 import 'router.dart';
 import 'state/store.dart';
+import 'theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,7 +17,7 @@ class TravelApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const seed = Colors.teal;
+    const seed = appSeed;
     return MaterialApp.router(
       title: 'TRAVEL APP',
       debugShowCheckedModeBanner: false,

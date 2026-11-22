@@ -19,16 +19,9 @@ class TripState extends ChangeNotifier {
   bool isDayDone(int index) => _doneDays.contains(index);
   int get doneCount => _doneDays.length;
 
-  /// Дууссан өдрүүдийн нийт км.
-  int get kmDone {
-    final r = route;
-    if (r == null) return 0;
-    var sum = 0;
-    for (final i in _doneDays) {
-      if (i < r.days.length) sum += r.days[i].km;
-    }
-    return sum;
-  }
+  /// УБ-аас туулсан нийт км. Өдөр бүрийн км нь өмнөх зогсоолоос (эхний
+  /// өдөр УБ-аас) тооцогдсон тул дууссан өдрүүдийг дараалан нэмнэ.
+  int get kmDone => route?.kmAfterDays(doneCount) ?? 0;
 
   /// Явц 0–1.
   double get progress {
@@ -75,8 +68,17 @@ class TripState extends ChangeNotifier {
     _changed();
   }
 
+  /// Өдрийг тэмдэглэнэ. Аялал дараалан явагддаг тул [index]-р өдөр
+  /// дууссан бол түүнээс өмнөх бүх өдөр дууссан гэж үзнэ (хол зогсоолд
+  /// хүрсэн бол замын өмнөх хэсгийг туулсан). Буцааж арилгавал түүнээс
+  /// хойших өдрүүд мөн арилна.
   void toggleDay(int index) {
-    if (!_doneDays.remove(index)) _doneDays.add(index);
+    final r = route;
+    if (r == null || index < 0 || index >= r.dayCount) return;
+    final done = _doneDays.contains(index);
+    _doneDays
+      ..clear()
+      ..addAll(List.generate(done ? index : index + 1, (i) => i));
     _changed();
   }
 
@@ -115,9 +117,14 @@ class TripState extends ChangeNotifier {
   void load() {
     final m = AppDb.readMap('trip');
     _routeId = routeById(m['routeId'] as String?)?.id;
+    // Хуучин хувилбарт тасархай хадгалсан байж болох тул дараалал болгоно:
+    // хамгийн хол тэмдэглэсэн өдөр хүртэлх бүх өдөр дууссан
+    final saved = ((m['doneDays'] as List?) ?? const []).cast<int>();
+    final days = route?.dayCount ?? 0;
+    final last = saved.where((i) => i < days).fold(-1, (a, b) => b > a ? b : a);
     _doneDays
       ..clear()
-      ..addAll(((m['doneDays'] as List?) ?? const []).cast<int>());
+      ..addAll(List.generate(last + 1, (i) => i));
     _checklist
       ..clear()
       ..addAll(((m['checklist'] as Map?) ?? const {}).cast<String, bool>());
