@@ -2,9 +2,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../data/hazards.dart';
 import '../models/travel_route.dart';
 import '../state/offline.dart';
+import '../state/road_marks.dart';
 import '../state/trip.dart';
+import '../widgets/premium_gate.dart';
 import '../widgets/route_card.dart';
 import '../widgets/route_map.dart';
 
@@ -17,6 +20,14 @@ class RouteDetailScreen extends StatelessWidget {
 
   Future<void> _addToTrip(BuildContext context) async {
     final current = trip.route;
+    if (route.premium && current?.id != route.id) {
+      final ok = await requirePremium(
+        context,
+        '«${route.name}» нь Premium маршрут. Premium захиалгаар бүх '
+        'маршрут, хязгааргүй офлайн газрын зураг, замын тэмдэглэгээ нээгдэнэ.',
+      );
+      if (!ok || !context.mounted) return;
+    }
     if (current != null && current.id != route.id) {
       final ok = await showDialog<bool>(
         context: context,
@@ -51,11 +62,12 @@ class RouteDetailScreen extends StatelessWidget {
     final text = theme.textTheme;
 
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
           title: Text(route.name),
           actions: [
+            if (route.premium) const Center(child: PremiumBadge(compact: true)),
             RouteFavoriteButton(routeId: route.id),
             const SizedBox(width: 8),
           ],
@@ -103,7 +115,14 @@ class RouteDetailScreen extends StatelessWidget {
         ),
         body: ListView(
           children: [
-            SizedBox(height: 230, child: RouteMap(route: route)),
+            SizedBox(
+              height: 300,
+              child: ValueListenableBuilder(
+                valueListenable: roadMarks,
+                builder: (context, _, _) =>
+                    RouteMap(route: route, marks: marksOf(route.id)),
+              ),
+            ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
               child: Column(
@@ -181,9 +200,30 @@ class RouteDetailScreen extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ValueListenableBuilder(
+                      valueListenable: roadMarks,
+                      builder: (context, _, _) {
+                        final count = marksOf(route.id).length;
+                        return FilledButton.tonalIcon(
+                          onPressed: () =>
+                              context.push('/route/${route.id}/marks'),
+                          icon: const Icon(Icons.edit_location_alt_outlined),
+                          label: Text(
+                            count == 0
+                                ? 'Замын тэмдэглэгээ хийх'
+                                : 'Замын тэмдэглэгээ ($count)',
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   const TabBar(
                     tabs: [
                       Tab(text: 'Өдрөөр'),
+                      Tab(text: 'Зам'),
                       Tab(text: 'Зардал'),
                     ],
                   ),
@@ -199,9 +239,11 @@ class RouteDetailScreen extends StatelessWidget {
                   listenable: controller,
                   builder: (context, _) => Padding(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                    child: controller.index == 0
-                        ? _DayList(route: route)
-                        : _CostTable(route: route, colors: colors),
+                    child: switch (controller.index) {
+                      0 => _DayList(route: route),
+                      1 => _RoadConditions(route: route),
+                      _ => _CostTable(route: route, colors: colors),
+                    },
                   ),
                 );
               },
@@ -377,6 +419,117 @@ class _CostTable extends StatelessWidget {
         Text(
           'Зардал нь ойролцоо тооцоо бөгөөд улирал, шатахууны үнээс хамаарна.',
           style: Theme.of(context).textTheme.bodySmall,
+        ),
+      ],
+    );
+  }
+}
+
+/// «Замын нөхцөл»: зогсоол хоорондын хэсэг бүр засмал, шороон эсвэл
+/// бартаат эсэх. Газрын зураг дээр ижил өнгөөр зурагдана.
+class _RoadConditions extends StatelessWidget {
+  const _RoadConditions({required this.route});
+
+  final TravelRoute route;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final segments = route.segments;
+    final rough = route.roughCount;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: rough > 0
+                ? colors.errorContainer
+                : colors.secondaryContainer,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                rough > 0 ? Icons.terrain : Icons.check_circle_outline,
+                color: rough > 0
+                    ? colors.onErrorContainer
+                    : colors.onSecondaryContainer,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  rough > 0
+                      ? '$rough хэсэг бартаат замтай. Жийп унаа, нөөц дугуй, '
+                            'хамтдаа явах машинтай байхыг зөвлөнө.'
+                      : 'Бартаат зам байхгүй — суудлын машинаар явж болно.',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: rough > 0
+                        ? colors.onErrorContainer
+                        : colors.onSecondaryContainer,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        for (final seg in segments)
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: CircleAvatar(
+              radius: 18,
+              backgroundColor: seg.type.color,
+              child: Icon(
+                switch (seg.type) {
+                  RoadType.paved => Icons.add_road,
+                  RoadType.dirt => Icons.landscape_outlined,
+                  RoadType.rough => Icons.terrain,
+                },
+                size: 18,
+                color: Colors.white,
+              ),
+            ),
+            title: Text(seg.title),
+            subtitle: Text(seg.type.description),
+            trailing: Text(
+              seg.type.label,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: seg.type.color,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        if (hazardsOf(route.id).isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Анхаарах цэгүүд',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          for (final h in hazardsOf(route.id))
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: CircleAvatar(
+                radius: 18,
+                backgroundColor: h.type.color,
+                child: Icon(h.type.icon, size: 18, color: Colors.white),
+              ),
+              title: Text(h.title),
+              subtitle: Text(h.note),
+              onTap: () => showHazardSheet(context, h),
+            ),
+        ],
+        const SizedBox(height: 4),
+        Text(
+          'Замын төрөл нь ойролцоо мэдээлэл. Замдаа тааралдсан бартаат '
+          'хэсгээ «Замын тэмдэглэгээ»-д тэмдэглэж аваарай.',
+          style: theme.textTheme.bodySmall,
         ),
       ],
     );

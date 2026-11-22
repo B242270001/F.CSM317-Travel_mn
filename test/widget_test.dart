@@ -96,7 +96,7 @@ void main() {
     await tester.pump(const Duration(seconds: 2));
     await tester.pumpAndSettle();
     expect(find.text('Газар нэмэх'), findsOneWidget);
-    expect(find.text('Үнэлгээгээр'), findsOneWidget);
+    expect(find.text('Эрэмбэ: Миний дараалал'), findsOneWidget);
 
     auth.logout();
     await tester.pumpAndSettle();

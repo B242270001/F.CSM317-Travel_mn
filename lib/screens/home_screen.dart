@@ -2,14 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../data/places.dart';
+import '../data/zones.dart';
 import '../models/place.dart';
 import '../state/auth_service.dart';
 import '../state/favorites.dart';
+import '../state/place_order.dart';
 import '../state/ratings.dart';
 import '../state/store.dart';
 import '../state/trip.dart';
 import '../widgets/app_drawer.dart';
-import '../widgets/place_card.dart';
+import '../widgets/place_quick_view.dart';
 import 'detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -26,7 +28,10 @@ class _HomeScreenState extends State<HomeScreen> {
   String _query = '';
   bool _showFavorites = false;
   String? _season; // null = бүх улирал
-  bool _sortByRating = false;
+  PlaceSort _sort = PlaceSort.custom;
+  String? _zone; // null = бүх бүс
+  final Set<String> _collapsed = {}; // хураасан бүсүүдийн id
+  bool _reordering = false; // «Миний дараалал» засах горим
   String _selectedId = places.first.id; // том дэлгэцэд сонгосон газар
 
   /// Хайлт, улирал, дуртай шүүлтүүр ба эрэмбийг хэрэглэсэн жагсаалт.
@@ -46,18 +51,10 @@ class _HomeScreenState extends State<HomeScreen> {
           place.region.toLowerCase().contains(query) ||
           place.description.toLowerCase().contains(query) ||
           place.bestSeason.toLowerCase().contains(query);
-      return favoriteMatches && seasonMatches && queryMatches;
+      final zoneMatches = _zone == null || zoneOf(place.region).id == _zone;
+      return favoriteMatches && seasonMatches && queryMatches && zoneMatches;
     }).toList();
-    if (_sortByRating) {
-      // Дундаж үнэлгээгээр буурахаар; тэнцвэл үнэлгээний тоогоор
-      result.sort((a, b) {
-        final ra = ratingOf(a, ratings);
-        final rb = ratingOf(b, ratings);
-        final byAverage = rb.average.compareTo(ra.average);
-        return byAverage != 0 ? byAverage : rb.count.compareTo(ra.count);
-      });
-    }
-    return result;
+    return sortPlaces(result, _sort, ratings);
   }
 
   @override
@@ -66,8 +63,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _searchFocusNode.dispose();
     super.dispose();
   }
-
-  void _openDetails(Place place) => context.push('/place/${place.id}');
 
   void _showAboutDialog() {
     showAboutDialog(
@@ -115,7 +110,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // Дуртай эсвэл үнэлгээ өөрчлөгдөхөд жагсаалт, эрэмбэ шууд шинэчлэгдэнэ
     return ListenableBuilder(
-      listenable: Listenable.merge([favorites, userRatings, trip]),
+      listenable: Listenable.merge([favorites, userRatings, trip, placeOrder]),
       builder: (context, _) {
         final visiblePlaces = _visiblePlaces(
           favorites.value,
@@ -246,13 +241,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        FilterChip(
-                          avatar: const Icon(Icons.star_rounded, size: 18),
-                          label: const Text('Үнэлгээгээр'),
-                          tooltip: 'Дундаж үнэлгээгээр эрэмбэлэх',
-                          selected: _sortByRating,
-                          showCheckmark: false,
-                          onSelected: (v) => setState(() => _sortByRating = v),
+                        _SortMenu(
+                          value: _sort,
+                          onChanged: (v) => setState(() {
+                            _sort = v;
+                            _reordering = false;
+                          }),
                         ),
                         const SizedBox(width: 12),
                         for (final s in seasons) ...[
@@ -267,22 +261,69 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
+                  // Бүсийн шүүлтүүр: Баруун, Хангай, Төв, Зүүн, Улаанбаатар
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        ChoiceChip(
+                          avatar: const Icon(Icons.public, size: 18),
+                          label: const Text('Бүх бүс'),
+                          selected: _zone == null,
+                          showCheckmark: false,
+                          onSelected: (_) => setState(() => _zone = null),
+                        ),
+                        for (final z in zones) ...[
+                          const SizedBox(width: 6),
+                          ChoiceChip(
+                            avatar: Icon(z.icon, size: 18),
+                            label: Text(z.name),
+                            selected: _zone == z.id,
+                            showCheckmark: false,
+                            onSelected: (v) =>
+                                setState(() => _zone = v ? z.id : null),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 6),
                   Row(
                     children: [
-                      Text(
-                        _showFavorites ? 'Дуртай газрууд' : 'Байгалийн газрууд',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
+                      Expanded(
+                        child: Text(
+                          _showFavorites ? 'Дуртай' : 'Газрууд',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
-                      const Spacer(),
                       Text(
+                        '${visiblePlaces.map((p) => zoneOf(p.region).id).toSet().length} бүс · '
                         '${visiblePlaces.length} газар',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: colors.onSurfaceVariant,
                         ),
                       ),
+                      // «Миний дараалал»-ыг чирж засах горим
+                      if (_sort == PlaceSort.custom) ...[
+                        const SizedBox(width: 4),
+                        TextButton.icon(
+                          style: TextButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          onPressed: () =>
+                              setState(() => _reordering = !_reordering),
+                          icon: Icon(
+                            _reordering ? Icons.check : Icons.swap_vert,
+                            size: 18,
+                          ),
+                          label: Text(_reordering ? 'Болсон' : 'Дараалал'),
+                        ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -293,7 +334,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           return _EmptyState(
                             showingFavorites: _showFavorites,
                             filtered:
-                                _query.trim().isNotEmpty || _season != null,
+                                _query.trim().isNotEmpty ||
+                                _season != null ||
+                                _zone != null,
                           );
                         }
                         if (constraints.maxWidth >= 840) {
@@ -303,10 +346,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             visiblePlaces,
                           );
                         }
-                        return _buildGridLayout(
-                          constraints.maxWidth,
-                          visiblePlaces,
-                        );
+                        return _sort == PlaceSort.custom && _reordering
+                            ? _buildReorderList(visiblePlaces)
+                            : _buildZoneLayout(visiblePlaces);
                       },
                     ),
                   ),
@@ -319,25 +361,153 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildGridLayout(double width, List<Place> items) {
-    final columns = width >= 600 ? 3 : 2;
-    return GridView.builder(
+  /// «Миний дараалал» засах: бариулаас чирж дарааллыг сольж, санд хадгална.
+  Widget _buildReorderList(List<Place> items) {
+    return ReorderableListView.builder(
       padding: const EdgeInsets.only(bottom: 92, top: 4),
+      buildDefaultDragHandles: false,
       itemCount: items.length,
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: columns,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: columns == 2 ? 0.73 : 0.76,
-      ),
-      itemBuilder: (context, index) {
-        final place = items[index];
-        return PlaceCard(
-          key: ValueKey(place.id),
-          place: place,
-          onTap: () => _openDetails(place),
+      // onReorderItem: newIndex нь зөөгдсөн газрыг хассаны дараах байрлал
+      onReorderItem: (oldIndex, newIndex) {
+        reorderPlaces(
+          [for (final p in sortPlaces(places, PlaceSort.custom)) p.id],
+          [for (final p in items) p.id],
+          oldIndex,
+          newIndex,
         );
       },
+      itemBuilder: (context, index) {
+        final place = items[index];
+        return PlaceListTile(
+          key: ValueKey(place.id),
+          place: place,
+          onTap: null, // засах үед зөвхөн чирнэ
+          highlighted: true,
+          trailing: ReorderableDragStartListener(
+            index: index,
+            child: const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 6, vertical: 20),
+              child: Icon(Icons.drag_indicator),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Газруудыг бүс → аймаг гэж хувааж харуулна. Бүсийн гарчиг дээр дарж
+  /// хураана; газар дээр дарахад товч мэдээлэл гарна.
+  Widget _buildZoneLayout(List<Place> items) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
+    // бүс → аймаг → газрууд (эрэмбэ хадгалагдана)
+    final grouped = <Zone, Map<String, List<Place>>>{};
+    for (final p in items) {
+      grouped
+          .putIfAbsent(zoneOf(p.region), () => {})
+          .putIfAbsent(aimagName(p.region), () => [])
+          .add(p);
+    }
+    final order = [...zones, otherZone].where(grouped.containsKey);
+
+    int aimagIndex(Zone z, String aimag) {
+      final i = z.aimags.indexWhere((a) => aimag.contains(a));
+      return i == -1 ? 99 : i;
+    }
+
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 92, top: 4),
+      children: [
+        for (final zone in order) ...[
+          () {
+            final aimags = grouped[zone]!.keys.toList()
+              ..sort(
+                (a, b) => aimagIndex(zone, a).compareTo(aimagIndex(zone, b)),
+              );
+            final count = grouped[zone]!.values.fold(0, (s, l) => s + l.length);
+            final collapsed = _collapsed.contains(zone.id);
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Material(
+                  color: colors.primaryContainer,
+                  borderRadius: BorderRadius.circular(16),
+                  child: ListTile(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    leading: CircleAvatar(
+                      backgroundColor: colors.primary,
+                      foregroundColor: colors.onPrimary,
+                      child: Icon(zone.icon),
+                    ),
+                    title: Text(
+                      zone.name,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: colors.onPrimaryContainer,
+                      ),
+                    ),
+                    subtitle: Text(
+                      '${aimags.join(', ')} · $count газар',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: colors.onPrimaryContainer),
+                    ),
+                    trailing: Icon(
+                      collapsed ? Icons.expand_more : Icons.expand_less,
+                      color: colors.onPrimaryContainer,
+                    ),
+                    onTap: () => setState(() {
+                      if (!_collapsed.remove(zone.id)) _collapsed.add(zone.id);
+                    }),
+                  ),
+                ),
+                if (!collapsed)
+                  for (final aimag in aimags) ...[
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 10, 8, 6),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.location_on,
+                            size: 18,
+                            color: colors.primary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '$aimag аймаг',
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: colors.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '${grouped[zone]![aimag]!.length}',
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: colors.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    for (final place in grouped[zone]![aimag]!)
+                      PlaceListTile(
+                        key: ValueKey(place.id),
+                        place: place,
+                        onTap: () => showPlaceQuickView(context, place),
+                        trailing: const Icon(Icons.chevron_right),
+                        showRegion: false, // аймгийн гарчиг дээр бий
+                      ),
+                  ],
+                const SizedBox(height: 12),
+              ],
+            );
+          }(),
+        ],
+      ],
     );
   }
 
@@ -452,6 +622,43 @@ class _EmptyState extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Эрэмбийн сонголтын цэс.
+class _SortMenu extends StatelessWidget {
+  const _SortMenu({required this.value, required this.onChanged});
+
+  final PlaceSort value;
+  final ValueChanged<PlaceSort> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<PlaceSort>(
+      tooltip: 'Эрэмбэ солих',
+      initialValue: value,
+      onSelected: onChanged,
+      itemBuilder: (context) => [
+        for (final s in PlaceSort.values)
+          PopupMenuItem(
+            value: s,
+            child: ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(
+                s == value
+                    ? Icons.radio_button_checked
+                    : Icons.radio_button_off,
+              ),
+              title: Text(s.label),
+              subtitle: Text(s.hint),
+            ),
+          ),
+      ],
+      child: Chip(
+        avatar: const Icon(Icons.swap_vert, size: 18),
+        label: Text('Эрэмбэ: ${value.label}'),
       ),
     );
   }

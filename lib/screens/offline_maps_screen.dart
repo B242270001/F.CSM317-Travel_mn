@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 
 import '../data/routes.dart';
 import '../state/offline.dart';
+import '../state/subscription.dart';
+import '../widgets/premium_gate.dart';
 
 /// «Офлайн газрын зураг»: бүсээр нь маршрут, зам дээрх цэгийн өгөгдлийг
 /// төхөөрөмжид татаж хадгална. Татсан бүсийн мэдээлэл өгөгдлийн санд
@@ -32,8 +34,18 @@ class _OfflineMapsScreenState extends State<OfflineMapsScreen> {
     super.dispose();
   }
 
-  void _download(OfflineRegion region) {
+  Future<void> _download(OfflineRegion region) async {
     if (_timers.containsKey(region.id)) return;
+    // Үнэгүй хувилбарт нэг бүс; Premium-д хязгааргүй
+    final used = offlineRegionIds.value.length + _timers.length;
+    if (used >= freeOfflineRegions) {
+      final ok = await requirePremium(
+        context,
+        'Үнэгүй хувилбарт $freeOfflineRegions бүс татна. Premium-д бүх '
+        'бүсийг офлайнд татаж, сүлжээгүй газар ч аялна.',
+      );
+      if (!ok || !mounted) return;
+    }
     setState(() => _progress[region.id] = 0);
     _timers[region.id] = Timer.periodic(const Duration(milliseconds: 120), (
       timer,
@@ -101,6 +113,18 @@ class _OfflineMapsScreenState extends State<OfflineMapsScreen> {
                             '${downloaded.length}/${offlineRegions.length} '
                             'бүс татсан · $usedMb МБ',
                             style: TextStyle(color: colors.onPrimary),
+                          ),
+                          ListenableBuilder(
+                            listenable: subscription,
+                            builder: (context, _) => Text(
+                              subscription.isPremium
+                                  ? 'Premium: хязгааргүй татна'
+                                  : 'Үнэгүй: $freeOfflineRegions бүс хүртэл',
+                              style: TextStyle(
+                                color: colors.onPrimary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
                         ],
                       ),

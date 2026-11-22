@@ -11,7 +11,9 @@ import 'data/routes.dart';
 import 'screens/main_shell.dart';
 import 'screens/my_trip_screen.dart';
 import 'screens/offline_maps_screen.dart';
+import 'screens/premium_screen.dart';
 import 'screens/register_screen.dart';
+import 'screens/road_marks_screen.dart';
 import 'screens/roadside_screen.dart';
 import 'screens/route_detail_screen.dart';
 import 'screens/login_screen.dart';
@@ -58,6 +60,19 @@ final router = GoRouter(
         final route = routeById(state.pathParameters['id']);
         return route == null ? const _NotFound() : RoadsideScreen(route: route);
       },
+    ),
+    GoRoute(
+      path: '/route/:id/marks',
+      builder: (context, state) {
+        final route = routeById(state.pathParameters['id']);
+        return route == null
+            ? const _NotFound()
+            : RoadMarksScreen(route: route);
+      },
+    ),
+    GoRoute(
+      path: '/premium',
+      builder: (context, state) => const PremiumScreen(),
     ),
     GoRoute(path: '/trip', builder: (context, state) => const MyTripScreen()),
     GoRoute(

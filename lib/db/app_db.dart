@@ -14,6 +14,9 @@ import 'package:hive_flutter/hive_flutter.dart';
 /// • trip           — идэвхтэй аялал: маршрут, дууссан өдрүүд, жагсаалт
 /// • offlineRegions — татсан бүсүүдийн id
 /// • wifiOnly       — зөвхөн Wi-Fi-аар татах тохиргоо
+/// • subscriptions  — Premium захиалга: и-мэйл → {plan, method, expires}
+/// • roadMarks      — замын тэмдэглэгээ: [{routeId, type, note, lat, lng}]
+/// • placeOrder     — газруудын хэрэглэгчийн өөрийн дараалал (id-ууд)
 class AppDb {
   const AppDb._();
 
